@@ -8,9 +8,7 @@ type AnimeListResponse = { page: number; items: SeriesListItem[] };
 
 async function getData(page: number): Promise<AnimeListResponse> {
   const base = getApiBaseUrl();
-  const url = `${base}/api/anime_list?page=${page}`;
-
-  const res = await fetch(url, { cache: "no-store" });
+  const res = await fetch(`${base}/api/anime_list?page=${page}`, { cache: "no-store" });
   if (!res.ok) throw new Error("Failed to load list");
   return res.json();
 }
@@ -53,8 +51,6 @@ export default async function Home({ searchParams }: { searchParams: { page?: st
 }
 
 function Card({ item, priority = false }: { item: SeriesListItem; priority?: boolean }) {
-  const base = getApiBaseUrl();
-
   return (
     <AnimeLink seriesUrl={item.url} postId={item.postId} className="group block">
       <div className="aspect-[2/3] overflow-hidden rounded-lg bg-surface border border-stroke shadow-sm">
@@ -63,11 +59,7 @@ function Card({ item, priority = false }: { item: SeriesListItem; priority?: boo
             priority={priority}
             unoptimized
             className="h-full w-full object-cover transition-transform duration-200 ease-in-out group-hover:scale-[1.02]"
-            src={
-              item.image.startsWith("data:")
-                ? item.image
-                : `${base}/api/image?src=${encodeURIComponent(item.image)}`
-            }
+            src={item.image.startsWith('data:') ? item.image : `${getApiBaseUrl()}/api/image?src=${encodeURIComponent(item.image)}`}
             alt={item.title || "Anime"}
             width={300}
             height={450}
@@ -76,9 +68,9 @@ function Card({ item, priority = false }: { item: SeriesListItem; priority?: boo
           <div className="h-full w-full grid place-items-center text-xs text-gray-400">No Image</div>
         )}
       </div>
-      <div className="mt-2 line-clamp-2 text-sm text-text-high group-hover:text-text-high">
-        {item.title || "Untitled"}
-      </div>
+      <div className="mt-2 line-clamp-2 text-sm text-text-high group-hover:text-text-high">{item.title || "Untitled"}</div>
     </AnimeLink>
   );
 }
+
+

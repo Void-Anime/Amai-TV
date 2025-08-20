@@ -33,8 +33,7 @@ function EpisodePlayer({ src, episodeUrl, context }: { src: string; episodeUrl?:
       if (!episodeUrl) return;
       try {
         const base = getApiBaseUrl();
-        const url = `${base}/api/episode_players?url=${encodeURIComponent(episodeUrl)}`.replace(/^\/?\/?/, '/');
-        const res = await fetch(url);
+        const res = await fetch(`${base}/api/episode_players?url=${encodeURIComponent(episodeUrl)}`);
         if (res.ok) {
           const data = await res.json();
           const items: PlayerSourceItem[] = data.items || [];
@@ -53,8 +52,7 @@ function EpisodePlayer({ src, episodeUrl, context }: { src: string; episodeUrl?:
       try {
         const base = getApiBaseUrl();
         const qs = new URLSearchParams({ url: context.seriesUrl, ...(context.postId ? { post_id: String(context.postId) } : {}), ...(context.season ? { season: String(context.season) } : {}) });
-        const url = `${base}/api/anime_details?${qs.toString()}`.replace(/^\/?\/?/, '/');
-        const res = await fetch(url, { cache: 'no-store' });
+        const res = await fetch(`${base}/api/anime_details?${qs.toString()}`, { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
           const list: { title?: string | null; url: string }[] = data.episodes || [];

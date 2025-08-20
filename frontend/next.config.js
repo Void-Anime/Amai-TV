@@ -1,5 +1,4 @@
 /** @type {import('next').NextConfig} */
-const backend = process.env.NEXT_PUBLIC_API_URL || 'https://amai-tv-mnklmteux-shaan786lls-projects.vercel.app';
 const nextConfig = {
   reactStrictMode: true,
   images: {
@@ -9,12 +8,12 @@ const nextConfig = {
     typedRoutes: true,
   },
   async rewrites() {
-    if (backend) {
-      return [
-        { source: '/api/:path*', destination: `${backend.replace(/\/$/, '')}/api/:path*` },
-      ];
-    }
-    return [];
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/:path*`,
+      },
+    ];
   },
 };
 

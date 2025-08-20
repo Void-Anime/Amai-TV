@@ -3,6 +3,11 @@ import { fetchAnimeDetails, fetchAnimeList, fetchEpisodePlayers, parseAnimeListF
 
 export const animeRouter = Router();
 
+// Health check endpoint
+animeRouter.get("/health", (_req, res) => {
+  res.json({ ok: true, timestamp: new Date().toISOString() });
+});
+
 animeRouter.get("/anime_list", async (req, res) => {
   try {
     const page = Number(req.query.page ?? 1);

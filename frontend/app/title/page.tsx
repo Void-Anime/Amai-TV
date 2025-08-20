@@ -11,8 +11,7 @@ async function getData(params: { url: string; post_id?: number; season?: number 
     ...(Number.isFinite(params.post_id as number) && (params.post_id as number) > 0 ? { post_id: String(params.post_id) } : {}),
     ...(Number.isFinite(params.season as number) ? { season: String(params.season) } : {}),
   });
-  const url = `${base}/api/anime_details?${qs.toString()}`.replace(/^\/?\/?/, '/');
-  const res = await fetch(url, { cache: "no-store" });
+  const res = await fetch(`${base}/api/anime_details?${qs.toString()}`, { cache: "no-store" });
   if (!res.ok) throw new Error("Failed to load details");
   return res.json();
 }

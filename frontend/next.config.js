@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-const backend = process.env.NEXT_PUBLIC_API_URL || '';
+const backend = process.env.NEXT_PUBLIC_API_URL || 'https://amai-tv-mnklmteux-shaan786lls-projects.vercel.app';
 const nextConfig = {
   reactStrictMode: true,
   images: {

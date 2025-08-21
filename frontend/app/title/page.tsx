@@ -7,7 +7,19 @@ import ReadMore from "@/components/ReadMore";
 
 type EpisodeItem = { number?: string | null; title?: string | null; url: string };
 type SeasonItem = { season: number | string; label: string; nonRegional: boolean };
-type AnimeDetailsResponse = { url: string; postId: number; season?: number | null; seasons: SeasonItem[]; episodes: EpisodeItem[] };
+type AnimeDetailsResponse = {
+  url: string;
+  postId: number;
+  season?: number | null;
+  seasons: SeasonItem[];
+  episodes: (EpisodeItem & { poster?: string | null })[];
+  poster?: string | null;
+  genres?: string[];
+  year?: number | null;
+  totalEpisodes?: number | null;
+  duration?: string | null;
+  languages?: string[];
+};
 
 async function getData(params: { url: string; post_id?: number; season?: number }) {
   return fetchAnimeDetails({ url: params.url, postId: params.post_id || 0, season: params.season });

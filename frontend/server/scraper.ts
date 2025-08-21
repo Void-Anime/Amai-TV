@@ -53,13 +53,20 @@ export function parseEpisodesFromHtml(html: string): EpisodeItem[] {
     const titleEl = $(el).find('h2.entry-title').first();
     const titleText = titleEl.text().trim() || link.text().trim() || null;
     const numberText = $(el).find('.num-epi').first().text().trim() || null;
-    if (href) episodes.push({ number: numberText, title: titleText || null, url: new URL(href, BASE).toString() });
+    // try poster inside article
+    let epPoster: string | null = null;
+    const imgEl = $(el).find('img').first();
+    if (imgEl && imgEl.length) {
+      epPoster = imgEl.attr('src') || imgEl.attr('data-src') || null;
+      if (epPoster) { try { epPoster = new URL(epPoster, BASE).toString(); } catch {} }
+    }
+    if (href) episodes.push({ number: numberText, title: titleText || null, url: new URL(href, BASE).toString(), poster: epPoster });
   });
   if (episodes.length === 0) {
     $('a[href*="/episode"]').each((_, a) => {
       const href = $(a).attr('href');
       if (!href) return;
-      episodes.push({ title: $(a).text().trim() || null, url: new URL(href, BASE).toString() });
+      episodes.push({ title: $(a).text().trim() || null, url: new URL(href, BASE).toString(), poster: null });
     });
   }
   return episodes;
@@ -166,6 +173,8 @@ export async function fetchAnimeList(page: number): Promise<AnimeListResponse> {
       } catch {}
     }
   }
+  // Enrich missing/placeholder images by scraping poster from the series page
+  items = await enrichSeriesPosters(items);
   return { page, items };
 }
 
@@ -179,8 +188,55 @@ export function parsePosterFromHtml(html: string, baseUrl: string): string | nul
     const src = cover.attr('src') || cover.attr('data-src') || cover.attr('data-original');
     if (src) img = src;
   }
+  // Fallback: scan any <img> tags, prefer image.tmdb.org or larger sizes
+  if (!img) {
+    const candidates: string[] = [];
+    $('img').each((_, el) => {
+      const s = $(el).attr('data-src') || $(el).attr('src');
+      if (!s) return;
+      candidates.push(s);
+    });
+    // Rank by host preference and size token
+    const scored = candidates.map((u) => {
+      const urlStr = (() => { try { return new URL(u, baseUrl).toString(); } catch { return u; } })();
+      const hostScore = /image\.tmdb\.org/i.test(urlStr) ? 2 : 0;
+      const sizeScore = /(original|w780|w500|w342|w300|w185)/i.test(urlStr) ? 1 : 0;
+      return { urlStr, score: hostScore + sizeScore };
+    }).sort((a, b) => b.score - a.score);
+    if (scored.length) img = scored[0].urlStr;
+  }
   if (img) { try { img = new URL(img, baseUrl).toString(); } catch {} }
   return img;
+}
+
+function parseMetaFromHtml(html: string): { genres?: string[]; year?: number | null; totalEpisodes?: number | null; duration?: string | null; languages?: string[]; synopsis?: string | null; status?: string | null } {
+  const $ = cheerio.load(html);
+  const out: any = {};
+  // Genres: common selectors
+  const genreTexts = $("a[rel='tag'], .genres a, .genre a").map((_, el) => $(el).text().trim()).get().filter(Boolean);
+  if (genreTexts.length) out.genres = Array.from(new Set(genreTexts));
+  // Year: look for patterns
+  const text = $('body').text();
+  const ym = text.match(/\b(19|20)\d{2}\b/);
+  if (ym) out.year = Number(ym[0]);
+  // Total episodes: search numeric near 'Episodes'
+  const epm = text.match(/Episodes?\s*[:|-]?\s*(\d+)/i);
+  if (epm) out.totalEpisodes = Number(epm[1]);
+  // Duration
+  const durm = text.match(/(\d+\s*(min|minutes|mins))/i);
+  if (durm) out.duration = durm[0];
+  // Languages
+  const langs: string[] = [];
+  if (/subbed/i.test(text)) langs.push('Sub');
+  if (/dubbed|dub/i.test(text)) langs.push('Dub');
+  if (langs.length) out.languages = Array.from(new Set(langs));
+  // Synopsis block
+  const synopsis = $('.entry-content p, .synopsis, .description').first().text().trim();
+  if (synopsis) out.synopsis = synopsis;
+  // Status
+  const statusMatch = text.match(/Status\s*[:|-]?\s*(Ongoing|Completed|Finished|Airing)/i);
+  if (statusMatch) out.status = statusMatch[1];
+  return out;
 }
 
 export async function fetchAnimeDetails(params: { url: string; postId: number; season?: number | null; }): Promise<AnimeDetailsResponse> {
@@ -190,6 +246,7 @@ export async function fetchAnimeDetails(params: { url: string; postId: number; s
   const nonce = extractNonceFromHtml(html);
   const seasons = parseSeasonsFromHtml(html);
   const poster = parsePosterFromHtml(html, url);
+  const meta = parseMetaFromHtml(html);
   const resolvedPostId = Number.isFinite(postId) && postId > 0 ? postId : (extractPostIdFromHtml(html) ?? 0);
   let episodes: EpisodeItem[] = [];
   if (typeof season === 'number' && Number.isFinite(season)) {
@@ -214,7 +271,7 @@ export async function fetchAnimeDetails(params: { url: string; postId: number; s
     }
   }
   if (episodes.length === 0) episodes = parseEpisodesFromHtml(html);
-  return { url, postId: resolvedPostId, season: season ?? null, seasons, episodes, poster };
+  return { url, postId: resolvedPostId, season: season ?? null, seasons, episodes, poster, ...meta };
 }
 
 export async function fetchEpisodePlayers(episodeUrl: string) {
@@ -227,6 +284,24 @@ export async function fetchEpisodePlayers(episodeUrl: string) {
   const m3u8Match = html.match(/https?:[^"'\s]+\.m3u8/); if (m3u8Match) { try { sources.push({ src: new URL(m3u8Match[0], episodeUrl).toString(), kind: 'video', label: 'HLS' }); } catch {} }
   const seen = new Set<string>();
   return sources.filter(s => (seen.has(s.src) ? false : (seen.add(s.src), true)));
+}
+
+export async function enrichSeriesPosters(items: SeriesListItem[]): Promise<SeriesListItem[]> {
+  // Only fetch when image is missing or a data URI
+  const targets = items.map((it, idx) => ({ it, idx })).filter(({ it }) => !it.image || it.image.startsWith('data:'));
+  if (targets.length === 0) return items;
+
+  await Promise.allSettled(
+    targets.map(async ({ it, idx }) => {
+      try {
+        const resp = await http.get(it.url, { responseType: 'text' });
+        const html = String(resp.data || '');
+        const poster = parsePosterFromHtml(html, it.url);
+        if (poster) items[idx] = { ...it, image: poster };
+      } catch {}
+    })
+  );
+  return items;
 }
 
 

@@ -1,4 +1,9 @@
 import { fetchAnimeDetails } from "@/server/scraper";
+import Image from "next/image";
+import SeasonSelector from "@/components/SeasonSelector";
+import EpisodeCard from "@/components/EpisodeCard";
+import DetailsHeader from "@/components/DetailsHeader";
+import ReadMore from "@/components/ReadMore";
 
 type EpisodeItem = { number?: string | null; title?: string | null; url: string };
 type SeasonItem = { season: number | string; label: string; nonRegional: boolean };
@@ -15,31 +20,32 @@ export default async function TitlePage({ searchParams }: { searchParams: { url?
   const data: AnimeDetailsResponse = url ? await getData({ url, post_id: postId, season: selectedSeason }) : { url: "", postId: 0, seasons: [], episodes: [] } as any;
   const episodes = data?.episodes || [];
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
-      <h1 className="text-2xl font-semibold">Anime Details</h1>
-      <div className="flex flex-wrap items-center gap-2">
-        {(data?.seasons || []).map((s) => (
-          <a key={String(s.season)} href={`/title?url=${encodeURIComponent(url)}&post_id=${data.postId || postId}&season=${s.season}`} className={`px-3 py-1 rounded-md border ${selectedSeason === Number(s.season) ? 'bg-primary-600' : 'border-white/10'}`}>
-            {s.label}
-          </a>
-        ))}
-      </div>
+    <div className="mx-auto max-w-6xl px-4 md:px-6 py-6 space-y-6">
+      <DetailsHeader
+        poster={data.poster || null}
+        title={decodeURIComponent(url.split('/').filter(Boolean).pop() || 'Anime')}
+        genres={data.genres}
+        year={data.year || null}
+        totalEpisodes={data.totalEpisodes || (data.episodes?.length || null)}
+        duration={data.duration}
+        languages={data.languages}
+      />
+
+      <ReadMore text={"Enjoy a modern, fast experience with AMAI TV. Episodes update season-wise below. Choose a season and start watching instantly."} />
+
+      {/* Season Selector */}
+      <SeasonSelector seasons={data.seasons || []} selected={selectedSeason} seriesUrl={url} postId={data.postId || postId} />
+
+      {/* Episodes */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-        {episodes.map((ep) => (
-          <EpisodeCard key={ep.url} ep={ep} seriesUrl={url} postId={data.postId || postId} season={selectedSeason || 1} />
+        {episodes.map((ep, idx) => (
+          <EpisodeCard key={ep.url} url={ep.url} title={ep.title} number={ep.number} poster={ep.poster || data.poster} seriesUrl={url} postId={data.postId || postId} season={selectedSeason || 1} progress={idx % 3 === 0 ? 0.42 : 0} completed={idx % 7 === 0} />
         ))}
       </div>
     </div>
   );
 }
 
-function EpisodeCard({ ep, seriesUrl, postId, season }: { ep: EpisodeItem; seriesUrl: string; postId?: number; season: number }) {
-  return (
-    <a href={`/watch?episode=${encodeURIComponent(ep.url)}&url=${encodeURIComponent(seriesUrl)}${postId ? `&post_id=${postId}` : ''}&season=${season}`} className="block rounded-md border border-white/10 p-4 hover:bg-white/5">
-      <div className="text-sm text-gray-400">{ep.number || "Episode"}</div>
-      <div className="font-medium">{ep.title || "Untitled episode"}</div>
-    </a>
-  );
-}
+// Inline EpisodeCard replaced by component
 
 

@@ -2,6 +2,7 @@ export interface EpisodeItem {
   number?: string | null;
   title?: string | null;
   url: string;
+  poster?: string | null;
 }
 
 export interface SeasonItem {
@@ -17,6 +18,13 @@ export interface AnimeDetailsResponse {
   seasons: SeasonItem[];
   episodes: EpisodeItem[];
   poster?: string | null;
+  genres?: string[];
+  year?: number | null;
+  totalEpisodes?: number | null;
+  duration?: string | null;
+  languages?: string[];
+  synopsis?: string | null;
+  status?: string | null;
 }
 
 export interface SeriesListItem {

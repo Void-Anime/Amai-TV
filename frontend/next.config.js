@@ -8,12 +8,12 @@ const nextConfig = {
     typedRoutes: true,
   },
   async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/:path*`,
-      },
-    ];
+    const dest = process.env.NEXT_PUBLIC_API_URL;
+    if (dest && dest.trim().length > 0) {
+      const base = dest.replace(/\/$/, '');
+      return [{ source: '/api/:path*', destination: `${base}/api/:path*` }];
+    }
+    return [];
   },
 };
 

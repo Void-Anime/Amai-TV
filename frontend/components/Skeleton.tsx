@@ -1,5 +1,4 @@
 import Image from "next/image";
-import { getApiBaseUrl } from "@/lib/api";
 
 export function CardSkeleton() {
   return (
@@ -15,7 +14,14 @@ export function ScreenSkeleton() {
     <div className="min-h-[60vh] grid place-items-center">
       <div className="flex flex-col items-center gap-4">
         <div className="relative w-28 h-28">
-          <Image unoptimized src={`${getApiBaseUrl()}/api/logo`} alt="AMAI TV" fill sizes="112px" className="object-contain opacity-90" />
+          <Image
+            unoptimized
+            src="https://i.ibb.co/YBQ2N8w7/logo.png"
+            alt="AMAI TV"
+            fill
+            sizes="112px"
+            className="object-contain opacity-90"
+          />
         </div>
         <div className="skeleton h-2 w-40" />
         <div className="skeleton h-2 w-24" />

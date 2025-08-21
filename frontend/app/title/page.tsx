@@ -1,19 +1,11 @@
-import { getApiBaseUrl } from "@/lib/api";
+import { fetchAnimeDetails } from "@/server/scraper";
 
 type EpisodeItem = { number?: string | null; title?: string | null; url: string };
 type SeasonItem = { season: number | string; label: string; nonRegional: boolean };
 type AnimeDetailsResponse = { url: string; postId: number; season?: number | null; seasons: SeasonItem[]; episodes: EpisodeItem[] };
 
 async function getData(params: { url: string; post_id?: number; season?: number }) {
-  const base = getApiBaseUrl();
-  const qs = new URLSearchParams({
-    url: params.url,
-    ...(Number.isFinite(params.post_id as number) && (params.post_id as number) > 0 ? { post_id: String(params.post_id) } : {}),
-    ...(Number.isFinite(params.season as number) ? { season: String(params.season) } : {}),
-  });
-  const res = await fetch(`${base}/api/anime_details?${qs.toString()}`, { cache: "no-store" });
-  if (!res.ok) throw new Error("Failed to load details");
-  return res.json();
+  return fetchAnimeDetails({ url: params.url, postId: params.post_id || 0, season: params.season });
 }
 
 export default async function TitlePage({ searchParams }: { searchParams: { url?: string; post_id?: string; season?: string } }) {

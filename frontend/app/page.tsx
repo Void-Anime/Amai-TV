@@ -1,16 +1,13 @@
 import Image from "next/image";
-import { getApiBaseUrl } from "@/lib/api";
 import AnimeLink from "@/components/AnimeLink";
 import Hero from "@/components/Hero";
+import { fetchAnimeList } from "@/server/scraper";
 
 type SeriesListItem = { title: string | null; url: string; image?: string | null; postId?: number };
 type AnimeListResponse = { page: number; items: SeriesListItem[] };
 
 async function getData(page: number): Promise<AnimeListResponse> {
-  const base = getApiBaseUrl();
-  const res = await fetch(`${base}/api/anime_list?page=${page}`, { cache: "no-store" });
-  if (!res.ok) throw new Error("Failed to load list");
-  return res.json();
+  return fetchAnimeList(page);
 }
 
 export default async function Home({ searchParams }: { searchParams: { page?: string } }) {
@@ -59,7 +56,7 @@ function Card({ item, priority = false }: { item: SeriesListItem; priority?: boo
             priority={priority}
             unoptimized
             className="h-full w-full object-cover transition-transform duration-200 ease-in-out group-hover:scale-[1.02]"
-            src={item.image.startsWith('data:') ? item.image : `${getApiBaseUrl()}/api/image?src=${encodeURIComponent(item.image)}`}
+            src={item.image.startsWith('data:') ? item.image : `/api/image?src=${encodeURIComponent(item.image)}`}
             alt={item.title || "Anime"}
             width={300}
             height={450}

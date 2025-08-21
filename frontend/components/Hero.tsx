@@ -12,7 +12,7 @@ export default function Hero() {
       </div>
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-bg-900/80 to-transparent" />
       <div className="absolute -right-10 -top-10 opacity-30">
-        <Image src="/favicon.ico" alt="" width={200} height={200} />
+        <Image unoptimized src="https://i.ibb.co/YBQ2N8w7/logo.png" alt="" width={200} height={200} />
       </div>
     </section>
   );

@@ -1,7 +1,6 @@
 "use client";
 import { useSearchParams } from "next/navigation";
 import React, { useRef, useEffect, useState } from "react";
-import Link from "next/link";
 import Image from "next/image";
 import Hls from "hls.js";
 import { getApiBaseUrl } from "@/lib/api";
@@ -166,7 +165,7 @@ function EpisodePlayer({ src, episodeUrl, context }: { src: string; episodeUrl?:
               const isActive = Number(s.season) === (context?.season || 1);
               const href = `/title?url=${encodeURIComponent(context?.seriesUrl || '')}${context?.postId ? `&post_id=${context.postId}` : ''}&season=${s.season}`;
               return (
-                <Link key={String(s.season)} href={href} className={`px-3 py-1 rounded-full border whitespace-nowrap ${isActive ? 'border-primary bg-primary/10 text-text-high' : 'border-stroke text-text-dim hover:text-text-high'}`}>{s.label}</Link>
+                <a key={String(s.season)} href={href} className={`px-3 py-1 rounded-full border whitespace-nowrap ${isActive ? 'border-primary bg-primary/10 text-text-high' : 'border-stroke text-text-dim hover:text-text-high'}`}>{s.label}</a>
               );
             })}
           </div>

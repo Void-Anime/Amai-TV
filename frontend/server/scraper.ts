@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import * as cheerio from 'cheerio';
-import { AnimeDetailsResponse, AnimeListResponse, EpisodeItem, SeasonItem, SeriesListItem } from './types';
+import { AnimeDetailsResponse, AnimeListResponse, EpisodeItem, SeasonItem, SeriesListItem, PlayerSourceItem } from './types';
 
 const BASE = 'https://animesalt.cc';
 const AJAX = `${BASE}/wp-admin/admin-ajax.php`;
@@ -241,6 +241,10 @@ function parseMetaFromHtml(html: string): { genres?: string[]; year?: number | n
 
 export async function fetchAnimeDetails(params: { url: string; postId: number; season?: number | null; }): Promise<AnimeDetailsResponse> {
   const { url, postId, season } = params;
+  // Movies use a different structure; delegate to movie details
+  if (/\/movies\//i.test(url)) {
+    return await fetchMovieDetails(url);
+  }
   const pageResp = await http.get(url);
   const html = pageResp.data as string;
   const nonce = extractNonceFromHtml(html);
@@ -256,17 +260,21 @@ export async function fetchAnimeDetails(params: { url: string; postId: number; s
     episodes = parseEpisodesFromHtml(text);
   } else {
     if (Number.isFinite(resolvedPostId) && resolvedPostId > 0) {
-      const payload = new URLSearchParams({ action: 'torofilm_get_episodes', id: String(resolvedPostId), nonce: nonce || '' });
-      const resp = await http.post(AJAX, payload, { headers: { Referer: url } });
-      const body = resp.data;
-      if (typeof body === 'string') {
-        const trimmed = body.trim();
-        if (trimmed !== '' && trimmed !== '0') {
-          try { const parsed = JSON.parse(body); if (parsed && typeof parsed === 'object' && 'html' in parsed) { episodes = parseEpisodesFromHtml(parsed.html); } }
-          catch { episodes = parseEpisodesFromHtml(body); }
+      try {
+        const payload = new URLSearchParams({ action: 'torofilm_get_episodes', id: String(resolvedPostId), nonce: nonce || '' });
+        const resp = await http.post(AJAX, payload, { headers: { Referer: url } });
+        const body = resp.data;
+        if (typeof body === 'string') {
+          const trimmed = body.trim();
+          if (trimmed !== '' && trimmed !== '0') {
+            try { const parsed = JSON.parse(body); if (parsed && typeof parsed === 'object' && 'html' in parsed) { episodes = parseEpisodesFromHtml(parsed.html); } }
+            catch { episodes = parseEpisodesFromHtml(body); }
+          }
+        } else if (typeof body === 'object' && body && 'html' in body) {
+          episodes = parseEpisodesFromHtml((body as any).html as string);
         }
-      } else if (typeof body === 'object' && body && 'html' in body) {
-        episodes = parseEpisodesFromHtml((body as any).html as string);
+      } catch {
+        // Ignore AJAX failures, we'll fall back to HTML parse below
       }
     }
   }
@@ -302,6 +310,72 @@ export async function enrichSeriesPosters(items: SeriesListItem[]): Promise<Seri
     })
   );
   return items;
+}
+
+export async function fetchMoviesList(page: number, query?: string): Promise<AnimeListResponse> {
+  let items: SeriesListItem[] = [];
+  try {
+    if (query && query.trim().length > 0) {
+      const axios = (await import('axios')).default;
+      const { data: html } = await axios.get(`${BASE}/?s=${encodeURIComponent(query)}`, {
+        headers: { 'User-Agent': 'Mozilla/5.0' }, timeout: 20000,
+      });
+      const all = parseAnimeListFromHtml(String(html));
+      items = all.filter((i) => /\/movies\//i.test(i.url));
+    } else {
+      const candidates: string[] = [];
+      if (page <= 1) candidates.push(`${BASE}/movies/`);
+      candidates.push(`${BASE}/movies/page/${page}/`);
+      for (const url of candidates) {
+        try {
+          const resp = await http.get(url, { responseType: 'text' });
+          const html = String(resp.data || '');
+          const parsed = parseAnimeListFromHtml(html).filter((i) => /\/movies\//i.test(i.url));
+          if (parsed.length) { items = parsed; break; }
+        } catch {}
+      }
+    }
+  } catch {}
+  items = await enrichSeriesPosters(items);
+  return { page, items };
+}
+
+export async function fetchMovieDetails(url: string): Promise<AnimeDetailsResponse> {
+  const pageResp = await http.get(url);
+  const html = pageResp.data as string;
+  const poster = parsePosterFromHtml(html, url);
+  const meta = parseMetaFromHtml(html);
+  // Try to extract players directly from movie page
+  const players = extractPlayersFromHtml(html, url);
+  const episodes: EpisodeItem[] = [{ title: 'Full Movie', url, number: null, poster }];
+  return {
+    url,
+    postId: 0,
+    season: null,
+    seasons: [],
+    episodes,
+    poster,
+    ...meta,
+    players,
+  };
+}
+
+function extractPlayersFromHtml(html: string, baseUrl: string): PlayerSourceItem[] {
+  const $ = cheerio.load(html);
+  const sources: PlayerSourceItem[] = [];
+  $('iframe').each((_, el) => {
+    const src = $(el).attr('data-src') || $(el).attr('src');
+    if (!src) return;
+    try { sources.push({ src: new URL(src, baseUrl).toString(), kind: 'iframe' }); } catch {}
+  });
+  $('video source').each((_, el) => {
+    const src = $(el).attr('src'); if (!src) return;
+    try { sources.push({ src: new URL(src, baseUrl).toString(), kind: 'video', label: $(el).attr('label') || null, quality: $(el).attr('res') || null }); } catch {}
+  });
+  const m3u8 = html.match(/https?:[^"'\s]+\.m3u8/);
+  if (m3u8) { try { sources.push({ src: new URL(m3u8[0], baseUrl).toString(), kind: 'video', label: 'HLS' }); } catch {} }
+  const seen = new Set<string>();
+  return sources.filter((s) => (seen.has(s.src) ? false : (seen.add(s.src), true)));
 }
 
 

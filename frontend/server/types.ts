@@ -25,6 +25,14 @@ export interface AnimeDetailsResponse {
   languages?: string[];
   synopsis?: string | null;
   status?: string | null;
+  players?: PlayerSourceItem[];
+}
+
+export interface PlayerSourceItem {
+  src: string;
+  label?: string | null;
+  quality?: string | null;
+  kind: 'iframe' | 'video';
 }
 
 export interface SeriesListItem {

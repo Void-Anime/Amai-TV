@@ -29,6 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
               <nav className="hidden md:flex gap-4 text-sm text-text-dim">
                 <a href="/anime" className="hover:text-text-high">Anime</a>
+                <a href="/movies" className="hover:text-text-high">Movies</a>
                 <a href="#trending" className="hover:text-text-high">Trending</a>
                 <a href="#latest" className="hover:text-text-high">Latest</a>
                 <a href="#popular" className="hover:text-text-high">Popular</a>

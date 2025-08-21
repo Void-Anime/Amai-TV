@@ -27,7 +27,10 @@ export default function AnimeLink({ seriesUrl, postId, className, children }: Pr
         }
       } catch {}
     }
-    const qs = new URLSearchParams({ url: seriesUrl, season: "1" });
+    // If it's a movie page (/movies/), don't append season
+    const isMovie = /\/movies\//i.test(seriesUrl);
+    const qs = new URLSearchParams({ url: seriesUrl });
+    if (!isMovie) qs.set("season", "1");
     if (finalPostId) qs.set("post_id", String(finalPostId));
     router.push(`/title?${qs.toString()}`);
   };

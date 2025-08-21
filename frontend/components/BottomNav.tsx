@@ -2,9 +2,9 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useMemo } from "react";
-import { HomeIcon as HomeOutline, MagnifyingGlassIcon, BookmarkIcon, UserIcon, RectangleStackIcon } from "@heroicons/react/24/outline";
+import { HomeIcon as HomeOutline, MagnifyingGlassIcon, BookmarkIcon, UserIcon, RectangleStackIcon, FilmIcon } from "@heroicons/react/24/outline";
 
-type RoutePath = "/" | "/anime" | "/search" | "/list" | "/profile";
+type RoutePath = "/" | "/anime" | "/movies" | "/search" | "/list" | "/profile";
 type Item = { label: string; href: RoutePath; icon: (active: boolean) => JSX.Element };
 
 function HomeIcon(active: boolean) {
@@ -22,12 +22,16 @@ function ProfileIcon(active: boolean) {
 function AnimeIcon(active: boolean) {
   return <RectangleStackIcon className={(active ? "scale-110 text-primary " : "text-text-dim ") + "h-6 w-6 transition-transform"} />;
 }
+function MoviesIcon(active: boolean) {
+  return <FilmIcon className={(active ? "scale-110 text-primary " : "text-text-dim ") + "h-6 w-6 transition-transform"} />;
+}
 
 export default function BottomNav() {
   const pathname = usePathname();
   const items: Item[] = useMemo(() => ([
     { label: "Home", href: "/", icon: HomeIcon },
     { label: "Anime", href: "/anime", icon: AnimeIcon },
+    { label: "Movies", href: "/movies", icon: MoviesIcon },
     { label: "Search", href: "/search", icon: SearchIcon },
     { label: "My List", href: "/list", icon: ListIcon },
     { label: "Profile", href: "/profile", icon: ProfileIcon },
@@ -35,7 +39,7 @@ export default function BottomNav() {
 
   return (
     <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 border-t border-stroke bg-bg-900/90 backdrop-blur">
-      <ul className="grid grid-cols-5 px-2 py-2">
+      <ul className="grid grid-cols-6 px-2 py-2">
         {items.map((it) => {
           const active = pathname === it.href || (it.href !== "/" && pathname?.startsWith(it.href));
           return (

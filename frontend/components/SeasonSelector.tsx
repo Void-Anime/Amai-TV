@@ -35,7 +35,7 @@ export default function SeasonSelector({
           const href = `/title?url=${encodeURIComponent(seriesUrl)}${postId ? `&post_id=${postId}` : ''}&season=${s.season}`;
           const isActive = selected === Number(s.season);
           return (
-            <Link key={String(s.season)} href={href} className={`px-3 py-1 rounded-full border whitespace-nowrap ${isActive ? 'border-primary bg-primary/10 text-text-high' : 'border-stroke text-text-dim hover:text-text-high'}`}>{s.label}</Link>
+            <a key={String(s.season)} href={href} className={`px-3 py-1 rounded-full border whitespace-nowrap ${isActive ? 'border-primary bg-primary/10 text-text-high' : 'border-stroke text-text-dim hover:text-text-high'}`}>{s.label}</a>
           );
         })}
       </div>

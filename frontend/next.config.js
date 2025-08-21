@@ -4,9 +4,6 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  experimental: {
-    typedRoutes: true,
-  },
   async rewrites() {
     const dest = process.env.NEXT_PUBLIC_API_URL;
     if (dest && dest.trim().length > 0) {

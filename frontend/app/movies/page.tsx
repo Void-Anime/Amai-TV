@@ -1,38 +1,144 @@
-import AnimeGridCard from '@/components/AnimeGridCard'
-import { fetchMoviesList } from '@/server/scraper'
-
-type MovieItem = { title: string | null; url: string; image?: string | null; postId?: number }
+import { fetchMoviesList } from "@/server/scraper";
+import NewNavbar from "@/components/NewNavbar";
+import NewBottomNav from "@/components/NewBottomNav";
+import AnimeGridCard from "@/components/AnimeGridCard";
 
 export default async function MoviesPage({ searchParams }: { searchParams: { page?: string; q?: string } }) {
-  const page = Number(searchParams?.page || '1')
-  const q = searchParams?.q || ''
-  const data = await fetchMoviesList(Number.isFinite(page) ? page : 1, q)
-  const items: MovieItem[] = data.items || []
-  const prev = Math.max(1, page - 1)
-  const next = page + 1
+  const page = Number(searchParams?.page || 1);
+  const query = searchParams?.q || "";
+  
+  let data;
+  let error = null;
+  
+  try {
+    data = await fetchMoviesList(page, query);
+    console.log('Movies data:', data); // Debug log
+  } catch (err) {
+    console.error('Error fetching movies:', err);
+    error = err instanceof Error ? err.message : 'Unknown error occurred';
+  }
+  
+  const items = data?.items || [];
+
+  // If there's an error, show it but don't crash the page
+  if (error) {
+    return (
+      <div className="min-h-screen bg-black">
+        <NewNavbar />
+        <main className="mx-auto max-w-7xl px-4 md:px-6 py-6 space-y-6 pb-24">
+          <div className="text-center space-y-2">
+            <h1 className="text-4xl font-bold text-white">Movies</h1>
+            <p className="text-lg text-gray-300">Watch anime movies and specials</p>
+          </div>
+          
+          <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-6 text-center">
+            <h3 className="text-xl font-bold text-red-400 mb-2">Error Loading Movies</h3>
+            <p className="text-red-300 mb-4">{error}</p>
+            <p className="text-sm text-gray-400">Please try refreshing the page or check back later.</p>
+          </div>
+        </main>
+        <NewBottomNav />
+      </div>
+    );
+  }
+
   return (
-    <div className="mx-auto max-w-7xl px-4 md:px-6 pb-24 pt-6 space-y-6">
-      <header className="space-y-3">
-        <h1 className="text-2xl md:text-3xl font-semibold">Movies</h1>
-        <form action="/movies" className="grid gap-3 sm:grid-cols-[1fr_auto]">
-          <input name="q" defaultValue={q} placeholder="Search movies..." className="w-full rounded-md bg-bg-800 border border-stroke px-4 py-2 outline-none focus:ring-2 focus:ring-primary" />
-          <button className="btn btn-primary">Search</button>
-        </form>
-      </header>
+    <div className="min-h-screen bg-black">
+      <NewNavbar />
+      
+      <main className="mx-auto max-w-7xl px-4 md:px-6 py-6 space-y-6 pb-24">
+        <div className="text-center space-y-2">
+          <h1 className="text-4xl font-bold text-white">Movies</h1>
+          <p className="text-lg text-gray-300">Watch anime movies and specials</p>
+        </div>
 
-      <div className="grid gap-3 grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-        {items.map((it) => (
-          <AnimeGridCard key={it.url} url={it.url} title={it.title} image={it.image || undefined} postId={it.postId} />
-        ))}
-      </div>
+        {/* Search Bar */}
+        <div className="max-w-md mx-auto">
+          <form method="get" className="relative">
+            <input
+              type="text"
+              name="q"
+              placeholder="Search movies..."
+              defaultValue={query}
+              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            />
+            <button
+              type="submit"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
+          </form>
+        </div>
 
-      <div className="flex items-center justify-end gap-2">
-        <a href={`/movies?page=${prev}${q ? `&q=${encodeURIComponent(q)}` : ''}`} className="btn btn-outline">Prev</a>
-        <span className="text-sm text-text-dim">Page {page}</span>
-        <a href={`/movies?page=${next}${q ? `&q=${encodeURIComponent(q)}` : ''}`} className="btn btn-primary">Next</a>
-      </div>
+        {query && (
+          <div className="text-center">
+            <p className="text-gray-300">
+              Search results for: <span className="text-white font-medium">"{query}"</span>
+            </p>
+          </div>
+        )}
+
+        {/* Debug Info */}
+        <div className="text-center text-sm text-gray-500">
+          <p>Page: {page} | Items found: {items.length}</p>
+        </div>
+
+        <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          {items.map((item) => (
+            <AnimeGridCard
+              key={item.url}
+              url={item.url}
+              title={item.title}
+              image={item.image}
+              postId={item.postId}
+            />
+          ))}
+        </div>
+
+        {items.length === 0 && (
+          <div className="text-center py-12">
+            <div className="text-gray-500 mb-4">
+              <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4v16M17 4v16M3 8h4m10 0h4M6 4h12M6 20h12M6 12h12M6 16h12" />
+              </svg>
+            </div>
+            <p className="text-gray-400">
+              {query ? "No movies found for your search." : "No movies available at the moment."}
+            </p>
+            <p className="text-sm text-gray-500 mt-2">
+              This might be due to a temporary issue. Please try again later.
+            </p>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {items.length > 0 && (
+          <div className="flex justify-center items-center space-x-2">
+            {page > 1 && (
+              <a
+                href={`/movies?page=${page - 1}${query ? `&q=${encodeURIComponent(query)}` : ''}`}
+                className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Previous
+              </a>
+            )}
+            <span className="px-4 py-2 text-gray-300">Page {page}</span>
+            <a
+              href={`/movies?page=${page + 1}${query ? `&q=${encodeURIComponent(query)}` : ''}`}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              Next
+            </a>
+          </div>
+        )}
+      </main>
+
+      <NewBottomNav />
     </div>
-  )
+  );
 }
 
 

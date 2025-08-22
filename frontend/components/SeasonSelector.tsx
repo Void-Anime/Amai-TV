@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { createTitleUrl } from "@/lib/utils";
 
 type SeasonItem = { season: number | string; label: string; nonRegional: boolean };
 
@@ -13,29 +14,26 @@ export default function SeasonSelector({
   seriesUrl: string;
   postId?: number;
 }) {
+  // Extract title from URL to generate slug
+  const title = decodeURIComponent(seriesUrl.split('/').filter(Boolean).pop() || '');
+  
   return (
     <div className="w-full">
-      {/* Mobile dropdown */}
-      <div className="sm:hidden">
-        <form action="/title" method="get" className="flex gap-2 items-center">
-          <input type="hidden" name="url" value={seriesUrl} />
-          {postId ? <input type="hidden" name="post_id" value={String(postId)} /> : null}
-          <select name="season" defaultValue={selected || seasons[0]?.season as any} className="w-full rounded-md bg-bg-800 border border-stroke px-3 py-2">
-            {seasons.map((s) => (
-              <option key={String(s.season)} value={String(s.season)}>{s.label}</option>
-            ))}
-          </select>
-          <button className="btn btn-primary">Go</button>
-        </form>
-      </div>
-
-      {/* Desktop horizontal scroll */}
-      <div className="hidden sm:flex overflow-x-auto gap-2 pb-1">
+      <div className="flex overflow-x-auto gap-2 pb-1" role="tablist" aria-label="Seasons">
         {seasons.map((s) => {
-          const href = `/title?url=${encodeURIComponent(seriesUrl)}${postId ? `&post_id=${postId}` : ''}&season=${s.season}`;
+          const href = `${createTitleUrl(title, postId)}&season=${s.season}`;
           const isActive = selected === Number(s.season);
           return (
-            <a key={String(s.season)} href={href} className={`px-3 py-1 rounded-full border whitespace-nowrap ${isActive ? 'border-primary bg-primary/10 text-text-high' : 'border-stroke text-text-dim hover:text-text-high'}`}>{s.label}</a>
+            <a
+              key={String(s.season)}
+              href={href}
+              role="tab"
+              aria-selected={isActive}
+              tabIndex={isActive ? 0 : -1}
+              className={`px-3 py-1 rounded-full border whitespace-nowrap transition-colors ${isActive ? 'border-purple-500 bg-purple-500/10 text-white' : 'border-gray-600 text-gray-300 hover:text-white hover:border-gray-500'}`}
+            >
+              {s.label}
+            </a>
           );
         })}
       </div>

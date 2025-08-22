@@ -17,6 +17,9 @@ export default function DetailsHeader({
   totalEpisodes,
   duration,
   languages = [],
+  studio,
+  status,
+  rating,
 }: {
   poster?: string | null
   title: string
@@ -25,10 +28,13 @@ export default function DetailsHeader({
   totalEpisodes?: number | null
   duration?: string | null
   languages?: string[]
+  studio?: string | null
+  status?: string | null
+  rating?: number | null
 }) {
   const { w, h } = getPosterSize(poster);
   return (
-    <section className="relative overflow-hidden rounded-2xl border border-stroke bg-surface">
+    <section className="relative overflow-hidden rounded-2xl border border-gray-800 bg-gray-900">
       {poster && (
         <div className="absolute inset-0 opacity-20 blur-md">
           <Image unoptimized src={poster} alt="" fill sizes="100vw" className="object-cover" />
@@ -43,31 +49,34 @@ export default function DetailsHeader({
               alt={title}
               width={w}
               height={h}
-              className="rounded-xl border border-stroke shadow-md shadow-primary/20 object-contain"
+              className="rounded-xl border border-gray-700 shadow-md shadow-purple-500/20 object-contain"
             />
           ) : (
-            <div className="h-[280px] w-[200px] grid place-items-center text-text-dim rounded-xl border border-stroke">No Poster</div>
+            <div className="h-[280px] w-[200px] grid place-items-center text-gray-400 rounded-xl border border-gray-700 bg-gray-800">No Poster</div>
           )}
         </div>
         <div className="space-y-2">
-          <h1 className="text-2xl md:text-3xl font-semibold">{title}</h1>
-          <div className="flex flex-wrap gap-2 text-[12px] text-text-dim">
-            {year && <span className="px-2 py-0.5 rounded-full border border-stroke">{year}</span>}
-            {totalEpisodes && <span className="px-2 py-0.5 rounded-full border border-stroke">{totalEpisodes} eps</span>}
-            {duration && <span className="px-2 py-0.5 rounded-full border border-stroke">{duration}</span>}
+          <h1 className="text-2xl md:text-3xl font-semibold text-white">{title}</h1>
+          <div className="flex flex-wrap gap-2 text-[12px] text-gray-300">
+            {year && <span className="px-2 py-0.5 rounded-full border border-gray-600 bg-gray-800 text-white">{year}</span>}
+            {studio && <span className="px-2 py-0.5 rounded-full border border-gray-600 bg-gray-800 text-white">{studio}</span>}
+            {status && <span className="px-2 py-0.5 rounded-full border border-gray-600 bg-gray-800 text-white">{status}</span>}
+            {totalEpisodes && <span className="px-2 py-0.5 rounded-full border border-gray-600 bg-gray-800 text-white">{totalEpisodes} eps</span>}
+            {duration && <span className="px-2 py-0.5 rounded-full border border-gray-600 bg-gray-800 text-white">{duration}</span>}
+            {typeof rating === 'number' && <span className="px-2 py-0.5 rounded-full border border-gray-600 bg-gray-800 text-white">★ {rating.toFixed(1)}</span>}
             {languages.map((l) => (
-              <span key={l} className="px-2 py-0.5 rounded-full border border-stroke">{l}</span>
+              <span key={l} className="px-2 py-0.5 rounded-full border border-gray-600 bg-gray-800 text-white">{l}</span>
             ))}
           </div>
           <div className="flex flex-wrap gap-2">
             {genres.slice(0, 6).map((g) => (
-              <span key={g} className="chip">{g}</span>
+              <span key={g} className="px-3 py-1 bg-gray-800 text-gray-300 text-sm rounded-full border border-gray-700">{g}</span>
             ))}
           </div>
           <div className="flex flex-wrap gap-2 pt-2">
-            <a href="#episodes" className="btn btn-primary">Play Latest</a>
-            <a href="#episodes" className="btn btn-outline">Start Episode 1</a>
-            <button className="btn btn-outline">Add to Watchlist</button>
+            <a href="#episodes" className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">Play Latest</a>
+            <a href="#episodes" className="px-4 py-2 bg-transparent border border-gray-600 text-white rounded-lg hover:bg-gray-800 transition-colors">Start Episode 1</a>
+            <button className="px-4 py-2 bg-transparent border border-gray-600 text-white rounded-lg hover:bg-gray-800 transition-colors">Add to Watchlist</button>
           </div>
         </div>
       </div>

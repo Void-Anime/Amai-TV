@@ -2,19 +2,43 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { color-scheme: dark; }
-html, body, #__next { height: 100%; }
-body { @apply bg-bg-900 text-text-high antialiased; }
-
-.card {
-  @apply bg-surface border border-stroke rounded-lg shadow-md;
+/* Custom scrollbar hiding */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
-.btn { @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition duration-200 ease-in-out focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2; }
-.btn-primary { @apply bg-primary text-text-high hover:bg-primary-hover focus-visible:outline-primary; }
-.btn-outline { @apply border border-stroke text-text-high hover:bg-white/5 focus-visible:outline-stroke; }
-.chip { @apply inline-flex items-center rounded-md border border-stroke px-3 py-1 text-xs text-text-dim bg-bg-800 hover:bg-white/5; }
-.tab { @apply px-3 py-1 rounded-md border border-transparent text-sm text-text-dim hover:text-text-high hover:border-stroke; }
-.tab-active { @apply border-primary text-text-high; }
-.skeleton { @apply animate-pulse rounded-md bg-bg-800; }
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Custom utility classes */
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+  
+  .btn-primary {
+    @apply bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500;
+  }
+  
+  .btn-outline {
+    @apply bg-transparent border border-gray-600 text-white hover:bg-gray-800 focus:ring-gray-500;
+  }
+  
+  .card {
+    @apply bg-gray-900 border border-gray-800 rounded-xl p-6;
+  }
+  
+  .chip {
+    @apply px-3 py-1 bg-gray-800 text-gray-300 text-sm rounded-full border border-gray-700;
+  }
+  
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
 

@@ -93,7 +93,9 @@ export function parseAnimeListFromHtml(html: string): SeriesListItem[] {
   const items: SeriesListItem[] = [];
   const seen = new Set<string>();
   $('article.post').each((_, el) => {
+    // Look for both series and movie links
     let href = $(el).find('a[href*="/series/"]').first().attr('href');
+    if (!href) href = $(el).find('a[href*="/movies/"]').first().attr('href');
     if (!href) href = $(el).find('a').first().attr('href') || undefined;
     if (!href) return;
     const abs = new URL(href, BASE).toString();
@@ -128,7 +130,8 @@ export function parseAnimeListFromHtml(html: string): SeriesListItem[] {
     items.push({ title, url: abs, image: img || undefined, postId });
   });
   if (items.length === 0) {
-    $('a[href*="/series/"]').each((_, a) => {
+    // Fallback: look for any series or movie links
+    $('a[href*="/series/"], a[href*="/movies/"]').each((_, a) => {
       const href = $(a).attr('href');
       if (!href) return;
       const abs = new URL(href, BASE).toString();
@@ -142,10 +145,18 @@ export function parseAnimeListFromHtml(html: string): SeriesListItem[] {
 }
 
 export async function fetchAnimeList(page: number): Promise<AnimeListResponse> {
+  console.log(`fetchAnimeList called with page: ${page}`);
+  
   const payload = new URLSearchParams({ action: 'torofilm_infinite_scroll', page: String(page), per_page: '12', query_type: 'archive', post_type: 'series' });
   let items: SeriesListItem[] = [];
+  
   try {
+    console.log(`Attempting AJAX call to: ${AJAX}`);
+    console.log(`Payload: ${payload.toString()}`);
+    
     const { data } = await http.post(AJAX, payload, { responseType: 'text' });
+    console.log(`AJAX response received, data type: ${typeof data}, length: ${typeof data === 'string' ? data.length : 'N/A'}`);
+    
     let html: string | undefined;
     if (typeof data === 'object' && data) {
       const anyData = data as any;
@@ -156,25 +167,57 @@ export async function fetchAnimeList(page: number): Promise<AnimeListResponse> {
       html = data;
       try { const parsed = JSON.parse(data); if (parsed && typeof parsed === 'object') { if (typeof parsed.html === 'string') html = parsed.html; else if (typeof parsed.data === 'string') html = parsed.data; else if (typeof parsed.content === 'string') html = parsed.content; } } catch {}
     }
-    if (html) items = parseAnimeListFromHtml(html);
-  } catch {}
+    
+    if (html) {
+      console.log(`HTML extracted, length: ${html.length}`);
+      items = parseAnimeListFromHtml(html);
+      console.log(`Parsed ${items.length} items from AJAX response`);
+    } else {
+      console.log('No HTML found in AJAX response');
+    }
+  } catch (error) {
+    console.error('AJAX call failed:', error);
+  }
+  
   if (items.length === 0) {
     const candidates: string[] = [];
-    if (page <= 1) { candidates.push(`${BASE}/series/`); candidates.push(`${BASE}/`); }
+    if (page <= 1) { 
+      candidates.push(`${BASE}/series/`); 
+      candidates.push(`${BASE}/movies/`);
+      candidates.push(`${BASE}/`); 
+    }
     candidates.push(`${BASE}/series/page/${page}/`);
+    candidates.push(`${BASE}/movies/page/${page}/`);
     candidates.push(`${BASE}/series/?_page=${page}`);
+    candidates.push(`${BASE}/movies/?_page=${page}`);
     candidates.push(`${BASE}/?post_type=series&_page=${page}`);
+    candidates.push(`${BASE}/?post_type=movies&_page=${page}`);
+    
+    console.log(`AJAX failed, trying fallback URLs: ${candidates.join(', ')}`);
+    
     for (const url of candidates) {
       try {
+        console.log(`Trying fallback URL: ${url}`);
         const resp = await http.get(url, { responseType: 'text' });
         const html = String(resp.data || '');
         const parsed = parseAnimeListFromHtml(html);
-        if (parsed.length > 0) { items = parsed; break; }
-      } catch {}
+        console.log(`Fallback ${url} returned ${parsed.length} items`);
+        if (parsed.length > 0) { 
+          items = parsed; 
+          console.log(`Using fallback data from: ${url}`);
+          break; 
+        }
+      } catch (err) {
+        console.log(`Fallback ${url} failed:`, err);
+      }
     }
   }
+  
   // Enrich missing/placeholder images by scraping poster from the series page
+  console.log(`Enriching ${items.length} items with posters`);
   items = await enrichSeriesPosters(items);
+  console.log(`Final result: ${items.length} items`);
+  
   return { page, items };
 }
 
@@ -314,28 +357,73 @@ export async function enrichSeriesPosters(items: SeriesListItem[]): Promise<Seri
 
 export async function fetchMoviesList(page: number, query?: string): Promise<AnimeListResponse> {
   let items: SeriesListItem[] = [];
+  
   try {
     if (query && query.trim().length > 0) {
+      console.log(`Fetching movies with query: ${query}`);
       const axios = (await import('axios')).default;
       const { data: html } = await axios.get(`${BASE}/?s=${encodeURIComponent(query)}`, {
         headers: { 'User-Agent': 'Mozilla/5.0' }, timeout: 20000,
       });
       const all = parseAnimeListFromHtml(String(html));
       items = all.filter((i) => /\/movies\//i.test(i.url));
+      console.log(`Query search found ${all.length} total items, ${items.length} movies`);
     } else {
+      console.log(`Fetching movies page ${page}`);
       const candidates: string[] = [];
       if (page <= 1) candidates.push(`${BASE}/movies/`);
       candidates.push(`${BASE}/movies/page/${page}/`);
+      
+      console.log(`Trying URLs: ${candidates.join(', ')}`);
+      
       for (const url of candidates) {
         try {
+          console.log(`Attempting to fetch: ${url}`);
           const resp = await http.get(url, { responseType: 'text' });
           const html = String(resp.data || '');
+          console.log(`Got response from ${url}, HTML length: ${html.length}`);
+          
           const parsed = parseAnimeListFromHtml(html).filter((i) => /\/movies\//i.test(i.url));
-          if (parsed.length) { items = parsed; break; }
-        } catch {}
+          console.log(`Parsed ${parsed.length} movies from ${url}`);
+          
+          if (parsed.length) { 
+            items = parsed; 
+            console.log(`Successfully loaded ${items.length} movies from ${url}`);
+            break; 
+          }
+        } catch (err) {
+          console.error(`Failed to fetch ${url}:`, err);
+        }
+      }
+      
+      // Fallback: if no movies found from dedicated pages, try main page
+      if (items.length === 0) {
+        console.log('No movies found from dedicated pages, trying main page as fallback');
+        try {
+          const mainResp = await http.get(`${BASE}/`, { responseType: 'text' });
+          const mainHtml = String(mainResp.data || '');
+          const mainParsed = parseAnimeListFromHtml(mainHtml).filter((i) => /\/movies\//i.test(i.url));
+          console.log(`Fallback: Found ${mainParsed.length} movies from main page`);
+          
+          if (mainParsed.length > 0) {
+            items = mainParsed;
+          }
+        } catch (err) {
+          console.error('Fallback main page fetch failed:', err);
+        }
       }
     }
-  } catch {}
+  } catch (err) {
+    console.error('Error in fetchMoviesList:', err);
+    throw new Error(`Failed to fetch movies: ${err instanceof Error ? err.message : 'Unknown error'}`);
+  }
+  
+  console.log(`Final items count: ${items.length}`);
+  
+  if (items.length === 0) {
+    console.warn('No movies found, this might indicate an issue with the scraper or the source website');
+  }
+  
   items = await enrichSeriesPosters(items);
   return { page, items };
 }

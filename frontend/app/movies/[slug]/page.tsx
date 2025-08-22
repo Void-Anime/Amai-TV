@@ -245,22 +245,10 @@ export default async function MovieDetailsPage({
             <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-800">
               <h2 className="text-2xl font-bold text-white mb-4">Details</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {data.studio && (
-                  <div>
-                    <span className="text-gray-400">Studio:</span>
-                    <span className="text-white ml-2">{data.studio}</span>
-                  </div>
-                )}
                 {data.status && (
                   <div>
                     <span className="text-gray-400">Status:</span>
                     <span className="text-white ml-2">{data.status}</span>
-                  </div>
-                )}
-                {data.rating && (
-                  <div>
-                    <span className="text-gray-400">Rating:</span>
-                    <span className="text-white ml-2">{data.rating}</span>
                   </div>
                 )}
                 {data.totalEpisodes && (

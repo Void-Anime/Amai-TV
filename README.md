@@ -1,69 +1,62 @@
-## Anime Streaming Monorepo (TypeScript)
+## Anime Streaming App (Next.js 14 + TypeScript)
 
-A full-stack TypeScript project:
-- Backend: Express + Axios + Cheerio scraper (ported from `live_scraper.py`)
-- Frontend: Next.js 14 + Tailwind CSS (SSR, responsive UI)
+Full-stack app using Next.js App Router. Scraping is implemented in server-side routes with Axios + Cheerio (ported and expanded from `live_scraper.py`).
 
 ### Prerequisites
 - Node.js 18+
 
-### Install
+### Install & Run (Development)
 ```bash
+# from repo root
+cd frontend
 npm install
-npm --workspace backend install
-npm --workspace frontend install
-```
-
-### Development
-```bash
-# Start API on :4000 and Web on :3000
 npm run dev
+# App runs on http://localhost:3000
 ```
 
-If you want to run separately:
-```bash
-npm -w backend run dev
-npm -w frontend run dev
-```
+### Environment Variables
+- Optional: `NEXT_PUBLIC_SITE_BASE` (default: `https://animesalt.cc`)
 
-Frontend expects `NEXT_PUBLIC_API_URL` (defaults to `http://localhost:4000`).
+### Serverless API Routes (Next.js)
+- `GET /api/anime_list?page=1` — paginated list
+- `GET /api/anime_details?url=<series_url>[&post_id=<id>][&season=<n>]` — details + seasons + episodes
+- `GET /api/episode_players?url=<episode_url>` — video sources (HLS/iframe)
+- `GET /api/search?q=<query>` — search
+- `GET /api/image?src=<image_url>` — image proxy
 
-### Backend API
-- `GET /api/health` - Health check
-- `GET /api/anime_list?page=1` - Anime list
-- `GET /api/anime_details?url=<page_url>&post_id=<id>&season=<optional_int>` - Anime details
-- `GET /api/search?q=<query>` - Search anime
-- `GET /api/episode_players?url=<episode_url>` - Episode player sources
-- `GET /api/image?src=<image_url>` - Image proxy
-- `GET /api/logo` - Logo file
+Notes:
+- `post_id` improves season switching when provided; direct scraping works without it for default season.
+- Selectors depend on `animesalt.cc` markup; adjust in `frontend/server/scraper.ts` if the site changes.
 
 ### Frontend Pages
-- `/` Trending + Latest grid, SSR, responsive
-- `/search?q=...` Server-rendered search results
-- `/title?url=...&post_id=<id>&season=<n>` Details + seasons + episodes
-- `/watch?src=...` HLS-capable player with speed controls
+- `/` Trending, Latest, Popular grids (responsive, SSR)
+- `/search?q=...` Search results
+- `/title/<slug>` or `/anime/...` Details with seasons and episodes
+- `/watch?src=...` HLS-capable player with subtitles support
 
-### Vercel Deployment
+### Code Layout
+```
+frontend/
+  app/                 # App Router pages and API routes
+    api/               # Serverless endpoints (scraper wrappers)
+  server/              # Scraper logic (Axios + Cheerio)
+  components/          # UI components (cards, sliders, navbar, etc.)
+  lib/                 # Utilities (slugs, URLs)
+```
 
-#### Backend Deployment
-1. Deploy backend to a platform that supports Node.js (Railway, Render, Heroku, etc.)
-2. Set environment variables:
-   - `PORT` (optional, defaults to 4000)
+Key files:
+- `frontend/server/scraper.ts` — core scraping functions
+- `frontend/app/api/*` — API endpoints using scraper
+- `frontend/components/*` — UI building blocks
 
-#### Frontend Deployment
-1. Connect your GitHub repo to Vercel
-2. Set build settings:
-   - Framework Preset: Next.js
-   - Root Directory: `frontend`
-   - Build Command: `npm run build`
-   - Output Directory: `.next`
-3. Set environment variables:
-   - `NEXT_PUBLIC_API_URL` = `https://your-backend-domain.com`
-4. Deploy
+### Deployment (Vercel)
+1. Set project root to `frontend`
+2. Build Command: `npm run build`
+3. Output Directory: `.next`
+4. Env (optional): `NEXT_PUBLIC_SITE_BASE`
 
-The frontend will automatically proxy API calls to your backend using Next.js rewrites.
-
-### Notes
-- Selectors and endpoints depend on `animesalt.cc` and may need updates if the site changes.
-- The frontend uses Next.js rewrites to proxy API calls, so no code changes are needed for deployment.
+### Troubleshooting
+- Empty lists/details: check Network tab for API responses; site markup may have changed → update selectors in `scraper.ts`.
+- 500 errors from API routes: run `npm run dev` inside `frontend` and check server logs.
+- HLS not playing: ensure the `watch` page loads `hls.js` and the source URL ends with `.m3u8`.
 

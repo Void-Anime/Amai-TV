@@ -1,21 +1,86 @@
-import { fetchMoviesList } from "@/server/scraper";
+import { fetchNetworkContent } from "@/server/scraper";
 import NewNavbar from "@/components/NewNavbar";
 import NewBottomNav from "@/components/NewBottomNav";
 import DesktopNav from "@/components/DesktopNav";
 import AnimeGridCard from "@/components/AnimeGridCard";
+import { notFound } from "next/navigation";
 
-export default async function MoviesPage({ searchParams }: { searchParams: { page?: string; q?: string } }) {
+interface NetworkPageProps {
+  params: { slug: string };
+  searchParams: { page?: string; q?: string };
+}
+
+const networkInfo = {
+  "crunchyroll": {
+    name: "Crunchyroll",
+    image: "https://animesalt.cc/wp-content/uploads/crunchyroll-193x193.png",
+    description: "Premium anime streaming platform",
+    color: "from-orange-500 to-red-600"
+  },
+  "disney": {
+    name: "Disney+ Hotstar",
+    image: "https://animesalt.cc/wp-content/uploads/hotstar-193x193.png",
+    description: "Disney, Marvel, and Star content",
+    color: "from-blue-600 to-purple-700"
+  },
+  "netflix": {
+    name: "Netflix",
+    image: "https://animesalt.cc/wp-content/uploads/netflix-193x193.png",
+    description: "Global streaming entertainment",
+    color: "from-red-600 to-red-800"
+  },
+  "prime-video": {
+    name: "Prime Video",
+    image: "https://animesalt.cc/wp-content/uploads/primevideo-193x193.png",
+    description: "Amazon's streaming service",
+    color: "from-blue-500 to-blue-700"
+  },
+  "cartoon-network": {
+    name: "Cartoon Network",
+    image: "https://animesalt.cc/wp-content/uploads/cartoonnetwork-193x193.png",
+    description: "Kids and family entertainment",
+    color: "from-green-500 to-blue-600"
+  },
+  "sony-yay": {
+    name: "Sony Yay",
+    image: "https://animesalt.cc/wp-content/uploads/sonyay-193x193.png",
+    description: "Sony's kids entertainment channel",
+    color: "from-yellow-500 to-orange-500"
+  },
+  "hungama-tv": {
+    name: "Hungama TV",
+    image: "https://animesalt.cc/wp-content/uploads/hungama-193x193.png",
+    description: "Indian kids entertainment",
+    color: "from-purple-500 to-pink-600"
+  },
+  "disney-channel": {
+    name: "Disney Channel",
+    image: "https://animesalt.cc/wp-content/uploads/disney-193x193.png",
+    description: "Classic Disney channel content",
+    color: "from-blue-400 to-purple-500"
+  }
+};
+
+export default async function NetworkPage({ params, searchParams }: NetworkPageProps) {
+  const { slug } = params;
   const page = Number(searchParams?.page || 1);
   const query = searchParams?.q || "";
+  
+  // Check if network exists
+  if (!networkInfo[slug as keyof typeof networkInfo]) {
+    notFound();
+  }
+  
+  const network = networkInfo[slug as keyof typeof networkInfo];
   
   let data;
   let error = null;
   
   try {
-    data = await fetchMoviesList(page, query);
-    console.log('Movies data:', data); // Debug log
+    data = await fetchNetworkContent(slug, page, query);
+    console.log(`${network.name} data:`, data); // Debug log
   } catch (err) {
-    console.error('Error fetching movies:', err);
+    console.error(`Error fetching ${network.name} content:`, err);
     error = err instanceof Error ? err.message : 'Unknown error occurred';
   }
   
@@ -27,13 +92,20 @@ export default async function MoviesPage({ searchParams }: { searchParams: { pag
       <div className="min-h-screen bg-black">
         <NewNavbar />
         <main className="mx-auto max-w-7xl px-4 md:px-6 py-6 space-y-6 pb-24">
-          <div className="text-center space-y-2">
-            <h1 className="text-4xl font-bold text-white">Movies</h1>
-            <p className="text-lg text-gray-300">Watch anime movies and specials</p>
+          <div className="text-center space-y-4">
+            <div className={`w-24 h-24 bg-gradient-to-br ${network.color} rounded-lg mx-auto mb-4 flex items-center justify-center`}>
+              <img 
+                src={network.image} 
+                alt={network.name}
+                className="w-16 h-16 object-contain"
+              />
+            </div>
+            <h1 className="text-4xl font-bold text-white">{network.name}</h1>
+            <p className="text-lg text-gray-300">{network.description}</p>
           </div>
           
           <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-6 text-center">
-            <h3 className="text-xl font-bold text-red-400 mb-2">Error Loading Movies</h3>
+            <h3 className="text-xl font-bold text-red-400 mb-2">Error Loading Content</h3>
             <p className="text-red-300 mb-4">{error}</p>
             <p className="text-sm text-gray-400">Please try refreshing the page or check back later.</p>
           </div>
@@ -49,9 +121,16 @@ export default async function MoviesPage({ searchParams }: { searchParams: { pag
       <NewNavbar />
       
       <main className="mx-auto max-w-7xl px-4 md:px-6 py-6 space-y-6 pb-24">
-        <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold text-white">Movies</h1>
-          <p className="text-lg text-gray-300">Watch anime movies and specials</p>
+        <div className="text-center space-y-4">
+          <div className={`w-24 h-24 bg-gradient-to-br ${network.color} rounded-lg mx-auto mb-4 flex items-center justify-center`}>
+            <img 
+              src={network.image} 
+              alt={network.name}
+              className="w-16 h-16 object-contain"
+            />
+          </div>
+          <h1 className="text-4xl font-bold text-white">{network.name}</h1>
+          <p className="text-lg text-gray-300">{network.description}</p>
         </div>
 
         {/* Search Bar */}
@@ -60,7 +139,7 @@ export default async function MoviesPage({ searchParams }: { searchParams: { pag
             <input
               type="text"
               name="q"
-              placeholder="Search movies..."
+              placeholder={`Search ${network.name} content...`}
               defaultValue={query}
               className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             />
@@ -108,7 +187,7 @@ export default async function MoviesPage({ searchParams }: { searchParams: { pag
               </svg>
             </div>
             <p className="text-gray-400">
-              {query ? "No movies found for your search." : "No movies available at the moment."}
+              {query ? `No ${network.name} content found for your search.` : `No ${network.name} content available at the moment.`}
             </p>
             <p className="text-sm text-gray-500 mt-2">
               This might be due to a temporary issue. Please try again later.
@@ -121,7 +200,7 @@ export default async function MoviesPage({ searchParams }: { searchParams: { pag
           <div className="flex justify-center items-center space-x-2">
             {page > 1 && (
               <a
-                href={`/movies?page=${page - 1}${query ? `&q=${encodeURIComponent(query)}` : ''}`}
+                href={`/networks/${slug}?page=${page - 1}${query ? `&q=${encodeURIComponent(query)}` : ''}`}
                 className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors"
               >
                 Previous
@@ -129,7 +208,7 @@ export default async function MoviesPage({ searchParams }: { searchParams: { pag
             )}
             <span className="px-4 py-2 text-gray-300">Page {page}</span>
             <a
-              href={`/movies?page=${page + 1}${query ? `&q=${encodeURIComponent(query)}` : ''}`}
+              href={`/networks/${slug}?page=${page + 1}${query ? `&q=${encodeURIComponent(query)}` : ''}`}
               className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
             >
               Next
@@ -143,5 +222,3 @@ export default async function MoviesPage({ searchParams }: { searchParams: { pag
     </div>
   );
 }
-
-

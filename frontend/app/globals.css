@@ -21,24 +21,42 @@
 
 /* Custom utility classes */
 @layer components {
+  /* Netflix x Crunchyroll hybrid theme */
+  :root {
+    --bg: #000000; /* pure black */
+    --panel: #000000; /* pure black panels */
+    --muted: #9ca3af; /* gray-400 for subtle text */
+    --text: #ffffff; /* pure white */
+    --brand: #ffffff; /* keep accents minimal white */
+    --accent: #ffffff; /* white accents */
+  }
+
+  body {
+    @apply text-white;
+    background: var(--bg);
+  }
+
   .btn {
     @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
   }
   
   .btn-primary {
-    @apply bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500;
+    @apply bg-black text-white border border-white/20 hover:bg-black/90 focus:ring-white/30;
+    box-shadow: none;
   }
   
   .btn-outline {
-    @apply bg-transparent border border-gray-600 text-white hover:bg-gray-800 focus:ring-gray-500;
+    @apply bg-transparent border border-white/20 text-white hover:bg-white/5 focus:ring-white/30;
   }
   
   .card {
-    @apply bg-gray-900 border border-gray-800 rounded-xl p-6;
+    @apply rounded-xl p-6 bg-black;
+    border: 1px solid rgba(255,255,255,.12);
+    box-shadow: none;
   }
   
   .chip {
-    @apply px-3 py-1 bg-gray-800 text-gray-300 text-sm rounded-full border border-gray-700;
+    @apply px-3 py-1 bg-black text-gray-200 text-sm rounded-full border border-white/15;
   }
   
   .line-clamp-2 {

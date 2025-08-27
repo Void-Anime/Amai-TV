@@ -1,12 +1,14 @@
 import { fetchAnimeList } from "@/server/scraper";
 import NewNavbar from "@/components/NewNavbar";
 import NewBottomNav from "@/components/NewBottomNav";
-import NewHeroSlider from "@/components/NewHeroSlider";
+import DesktopNav from "@/components/DesktopNav";
 import NewCarousel from "@/components/NewCarousel";
 import NewAnimeCard from "@/components/NewAnimeCard";
+import OngoingSeriesGrid from "@/components/OngoingSeriesGrid";
+import UpcomingEpisodesGrid from "@/components/UpcomingEpisodesGrid";
 
 export default async function HomePage() {
-  // Fetch trending anime for hero slider
+  // Fetch trending anime
   const trendingData = await fetchAnimeList(1);
   const trendingAnime = trendingData.items?.slice(0, 5) || [];
 
@@ -18,25 +20,160 @@ export default async function HomePage() {
   const popularData = await fetchAnimeList(3);
   const popularAnime = popularData.items?.slice(0, 10) || [];
 
-  // Prepare hero slider data
-  const heroSlides = trendingAnime.map((anime) => ({
-    title: anime.title,
-    image: anime.image,
-    url: anime.url,
-    postId: anime.postId,
-    genres: [], // Default empty array since SeriesListItem doesn't have genres
-    tagline: `Experience the latest episodes of ${anime.title} on AMAI TV`,
-    rating: Math.floor(Math.random() * 2) + 4, // Random rating for demo
-    year: 2024,
-  }));
+  // Franchise logos (used in carousel)
+  const franchises = [
+    { name: 'Iron Man', img: 'https://www.rareanimes.co/wp-content/uploads/2021/08/Ironman.png' },
+    { name: 'Slugterra', img: 'https://www.rareanimes.co/wp-content/uploads/2021/08/Slugterra.png' },
+    { name: 'Miraculous', img: 'https://www.rareanimes.co/wp-content/uploads/2021/08/Miraclous.png' },
+    { name: 'Transformers', img: 'https://www.rareanimes.co/wp-content/uploads/2025/04/Transformers.png' },
+    { name: 'Naruto', img: 'https://www.rareanimes.co/wp-content/uploads/2025/04/Naruto.png' },
+    { name: 'Spider Man', img: 'https://www.rareanimes.co/wp-content/uploads/2021/08/Spiderman.png' },
+    { name: 'Pokemon', img: 'https://www.rareanimes.co/wp-content/uploads/2021/08/Pokemon.png' },
+    { name: 'Shin Chan', img: 'https://www.rareanimes.co/wp-content/uploads/2021/08/Shinchan.png' },
+    { name: 'Doraemon', img: 'https://www.rareanimes.co/wp-content/uploads/2021/08/Doraemon.png' },
+    { name: 'Beyblade', img: 'https://www.rareanimes.co/wp-content/uploads/2021/08/Beyblade.png' },
+    { name: 'Ben 10', img: 'https://www.rareanimes.co/wp-content/uploads/2021/08/Ben-10.png' },
+    { name: 'Dragon Ball', img: 'https://www.rareanimes.co/wp-content/uploads/2021/08/Dragonball.png' },
+  ];
 
   return (
     <div className="min-h-screen bg-black">
       <NewNavbar />
       
       <main className="space-y-8 pb-24">
-        {/* Hero Slider */}
-        <NewHeroSlider slides={heroSlides} />
+        {/* Franchises (replaces Hero Slider) */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+          {/* Franchise Logos Slider (loop feel, larger size, no background) */}
+          <div className="mt-2">
+            <NewCarousel title="Franchises" subtitle="Tap a logo to search" autoplay loop autoplayIntervalMs={2200}>
+              {[...franchises, ...franchises].map(({ name, img }, idx) => (
+                <a
+                  key={`${name}-${idx}`}
+                  href={`/search?q=${encodeURIComponent(name)}`}
+                  className="group flex-shrink-0 basis-1/3 sm:basis-1/3 md:basis-1/3 lg:basis-1/5 xl:basis-1/6"
+                  title={`Search ${name}`}
+                >
+                  <img
+                    src={`/api/image?src=${encodeURIComponent(img)}`}
+                    alt={name}
+                    className="h-40 sm:h-48 md:h-60 lg:h-72 w-full object-contain transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div className="mt-2 text-center text-xs text-gray-300 group-hover:text-white transition-colors">{name}</div>
+                </a>
+              ))}
+            </NewCarousel>
+          </div>
+        </section>
+
+        {/* Networks Section */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-white mb-2">Networks</h2>
+            <p className="text-gray-400">Watch content from your favorite streaming platforms</p>
+          </div>
+          
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8 gap-6 justify-items-center">
+            {/* Crunchyroll */}
+            <a href="/networks/crunchyroll" className="group">
+              <img 
+                src={`/api/image?src=${encodeURIComponent('https://animesalt.cc/wp-content/uploads/crunchyroll-193x193.png')}`} 
+                alt="Crunchyroll" 
+                title="Crunchyroll"
+                className="h-24 w-auto object-contain transition-transform duration-300 group-hover:scale-110"
+              />
+            </a>
+
+            {/* Disney+ Hotstar */}
+            <a href="/networks/disney" className="group">
+              <img 
+                src={`/api/image?src=${encodeURIComponent('https://animesalt.cc/wp-content/uploads/hotstar-193x193.png')}`} 
+                alt="Disney+ Hotstar" 
+                title="Disney+ Hotstar"
+                className="h-24 w-auto object-contain transition-transform duration-300 group-hover:scale-110"
+              />
+            </a>
+
+            {/* Netflix */}
+            <a href="/networks/netflix" className="group">
+              <img 
+                src={`/api/image?src=${encodeURIComponent('https://animesalt.cc/wp-content/uploads/netflix-193x193.png')}`} 
+                alt="Netflix" 
+                title="Netflix"
+                className="h-24 w-auto object-contain transition-transform duration-300 group-hover:scale-110"
+              />
+            </a>
+
+            {/* Prime Video */}
+            <a href="/networks/prime-video" className="group">
+              <img 
+                src={`/api/image?src=${encodeURIComponent('https://animesalt.cc/wp-content/uploads/primevideo-193x193.png')}`} 
+                alt="Prime Video" 
+                title="Prime Video"
+                className="h-24 w-auto object-contain transition-transform duration-300 group-hover:scale-110"
+              />
+            </a>
+
+            {/* Cartoon Network */}
+            <a href="/networks/cartoon-network" className="group">
+              <img 
+                src={`/api/image?src=${encodeURIComponent('https://animesalt.cc/wp-content/uploads/cartoonnetwork-193x193.png')}`} 
+                alt="Cartoon Network" 
+                title="Cartoon Network"
+                className="h-24 w-auto object-contain transition-transform duration-300 group-hover:scale-110"
+              />
+            </a>
+
+            {/* Sony Yay */}
+            <a href="/networks/sony-yay" className="group">
+              <img 
+                src={`/api/image?src=${encodeURIComponent('https://animesalt.cc/wp-content/uploads/sonyay-193x193.png')}`} 
+                alt="Sony Yay" 
+                title="Sony Yay"
+                className="h-24 w-auto object-contain transition-transform duration-300 group-hover:scale-110"
+              />
+            </a>
+
+            {/* Hungama TV */}
+            <a href="/networks/hungama-tv" className="group">
+              <img 
+                src={`/api/image?src=${encodeURIComponent('https://animesalt.cc/wp-content/uploads/hungama-193x193.png')}`} 
+                alt="Hungama TV" 
+                title="Hungama TV"
+                className="h-24 w-auto object-contain transition-transform duration-300 group-hover:scale-110"
+              />
+            </a>
+
+            {/* Disney Channel */}
+            <a href="/networks/disney-channel" className="group">
+              <img 
+                src={`/api/image?src=${encodeURIComponent('https://animesalt.cc/wp-content/uploads/disney-193x193.png')}`} 
+                alt="Disney Channel" 
+                title="Disney Channel"
+                className="h-24 w-auto object-contain transition-transform duration-300 group-hover:scale-110"
+              />
+            </a>
+          </div>
+        </section>
+
+        {/* Ongoing Series Section */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-white mb-2">Ongoing Series</h2>
+            <p className="text-gray-400">Currently airing anime series and ongoing shows</p>
+          </div>
+          
+          <OngoingSeriesGrid />
+        </section>
+
+        {/* Upcoming Episodes Section */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-white mb-2">Upcoming Episodes</h2>
+            <p className="text-gray-400">New episodes coming soon with countdown timers</p>
+          </div>
+          
+          <UpcomingEpisodesGrid />
+        </section>
 
         {/* Trending Now */}
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -160,6 +297,7 @@ export default async function HomePage() {
       </main>
 
       <NewBottomNav />
+      <DesktopNav />
     </div>
   );
 }

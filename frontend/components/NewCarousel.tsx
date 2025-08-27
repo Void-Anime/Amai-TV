@@ -8,6 +8,9 @@ type CarouselProps = {
   children: React.ReactNode;
   showViewAll?: boolean;
   viewAllHref?: string;
+  autoplay?: boolean;
+  autoplayIntervalMs?: number;
+  loop?: boolean;
 };
 
 export default function NewCarousel({
@@ -16,8 +19,12 @@ export default function NewCarousel({
   children,
   showViewAll = false,
   viewAllHref,
+  autoplay = false,
+  autoplayIntervalMs = 2500,
+  loop = false,
 }: CarouselProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [scrollStep, setScrollStep] = useState<number>(380);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
@@ -37,7 +44,7 @@ export default function NewCarousel({
   const scroll = (direction: "left" | "right") => {
     if (scrollContainerRef.current) {
       try {
-        const scrollAmount = 400;
+        const scrollAmount = scrollStep || 400;
         const newScrollLeft =
           scrollContainerRef.current.scrollLeft + (direction === "left" ? -scrollAmount : scrollAmount);
         
@@ -55,10 +62,60 @@ export default function NewCarousel({
     checkScrollPosition();
   };
 
+  // Measure child width to scroll by one card
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const measure = () => {
+      try {
+        const first = el.firstElementChild as HTMLElement | null;
+        if (first) {
+          // Include the gap ~16px (gap-4)
+          const gapPx = 16;
+          const w = first.getBoundingClientRect().width + gapPx;
+          if (w > 0) setScrollStep(w);
+        }
+      } catch {}
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [children]);
+
   // Check scroll position on mount and when children change
   useEffect(() => {
     checkScrollPosition();
   }, [children]);
+
+  // Continuous autoplay (smooth sliding). Pauses on hover.
+  useEffect(() => {
+    if (!autoplay) return;
+    const el = scrollContainerRef.current;
+    if (!el) return;
+
+    let rafId = 0;
+    const speedPxPerFrame = 0.8; // smooth slow slide
+
+    const tick = () => {
+      try {
+        if (!isHovered) {
+          const { scrollLeft, scrollWidth, clientWidth } = el;
+          const nearEnd = scrollLeft >= scrollWidth - clientWidth - 1;
+          if (nearEnd) {
+            if (loop) {
+              el.scrollTo({ left: 0 });
+            }
+          } else {
+            el.scrollLeft = scrollLeft + speedPxPerFrame;
+          }
+        }
+      } catch {}
+      rafId = requestAnimationFrame(tick);
+    };
+
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [autoplay, loop, isHovered]);
 
   return (
     <section className="space-y-4">

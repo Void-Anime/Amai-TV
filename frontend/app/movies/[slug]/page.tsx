@@ -10,6 +10,10 @@ async function findMovieBySlug(slug: string): Promise<{ url: string; postId?: nu
   try {
     console.log(`Searching for movie with slug: ${slug}`);
     
+    // Direct URL construction for movies - try the standard movie URL format
+    const movieUrl = `https://animesalt.cc/movies/${slug}/`;
+    console.log(`Trying direct movie URL: ${movieUrl}`);
+    
     // Debug: Dump first few pages to see what's available
     console.log('=== DEBUG: Available items on first 3 pages ===');
     for (let page = 1; page <= 3; page++) {
@@ -22,17 +26,18 @@ async function findMovieBySlug(slug: string): Promise<{ url: string; postId?: nu
           console.log(`  ${idx + 1}. "${title}" -> slug: "${itemSlug}" (URL: ${item.url})`);
         });
         
-        // Look specifically for Doraemon items
-        const doraemonItems = allData.items.filter(item => {
+        // Look specifically for items matching our slug
+        const matchingItems = allData.items.filter(item => {
           const title = item.title || decodeURIComponent(item.url.split('/').filter(Boolean).pop() || '');
-          return title.toLowerCase().includes('doraemon');
+          const itemSlug = generateSlug(title);
+          return itemSlug === slug;
         });
-        if (doraemonItems.length > 0) {
-          console.log(`Found ${doraemonItems.length} Doraemon items on page ${page}:`);
-          doraemonItems.forEach((item, idx) => {
+        if (matchingItems.length > 0) {
+          console.log(`Found ${matchingItems.length} matching items on page ${page}:`);
+          matchingItems.forEach((item, idx) => {
             const title = item.title || decodeURIComponent(item.url.split('/').filter(Boolean).pop() || '');
             const itemSlug = generateSlug(title);
-            console.log(`  Doraemon ${idx + 1}: "${title}" -> slug: "${itemSlug}" (URL: ${item.url})`);
+            console.log(`  Match ${idx + 1}: "${title}" -> slug: "${itemSlug}" (URL: ${item.url})`);
           });
         }
       } catch (err) {
@@ -110,8 +115,10 @@ async function findMovieBySlug(slug: string): Promise<{ url: string; postId?: nu
       }
     }
     
-    console.log(`Movie with slug "${slug}" not found after searching 5 pages and partial matching`);
-    return null;
+    // Final fallback: Try the direct movie URL construction
+    console.log(`Trying direct movie URL as final fallback: ${movieUrl}`);
+    return { url: movieUrl, postId: undefined };
+    
   } catch (error) {
     console.error('Error finding movie by slug:', error);
     return null;
@@ -263,20 +270,47 @@ export default async function MovieDetailsPage({
             {/* Watch Section */}
             <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-800">
               <h2 className="text-2xl font-bold text-white mb-4">Watch</h2>
-              <div className="bg-gray-800/50 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-white">Full Movie</h3>
-                    <p className="text-gray-400 text-sm">Complete movie available for streaming</p>
-                  </div>
-                  <a
-                    href={`/watch?episode=${encodeURIComponent(data.url)}&url=${encodeURIComponent(`/movies/${slug}`)}`}
-                    className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors"
-                  >
-                    Play
-                  </a>
+              
+              {/* Server Options */}
+              {data.players && data.players.length > 0 ? (
+                <div className="space-y-3">
+                  <p className="text-gray-300 text-sm mb-4">Choose a server to start streaming:</p>
+                  {data.players.map((player, index) => (
+                    <div key={index} className="bg-gray-800/50 rounded-lg p-4 flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-semibold text-white">
+                          {player.label || `Server ${index + 1}`}
+                        </h3>
+                        <p className="text-gray-400 text-sm">
+                          {player.kind === 'iframe' ? 'External Player' : 'Direct Stream'}
+                          {player.quality && ` • ${player.quality}`}
+                        </p>
+                      </div>
+                      <a
+                        href={`/watch?episode=${encodeURIComponent(data.url)}&url=${encodeURIComponent(`/movies/${slug}`)}&server=${index}`}
+                        className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors"
+                      >
+                        Play
+                      </a>
+                    </div>
+                  ))}
                 </div>
-              </div>
+              ) : (
+                <div className="bg-gray-800/50 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">Full Movie</h3>
+                      <p className="text-gray-400 text-sm">Complete movie available for streaming</p>
+                    </div>
+                    <a
+                      href={`/watch?episode=${encodeURIComponent(data.url)}&url=${encodeURIComponent(`/movies/${slug}`)}`}
+                      className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors"
+                    >
+                      Play
+                    </a>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import { fetchEpisodePlayers, fetchAnimeDetails, fetchAnimeList } from "@/server/scraper";
 import NewNavbar from "@/components/NewNavbar";
 import NewBottomNav from "@/components/NewBottomNav";
+import DesktopNav from "@/components/DesktopNav";
 import Image from "next/image";
 import Link from "next/link";
 import SeasonSelector from "@/components/SeasonSelector";
@@ -84,11 +85,12 @@ function parseSeasonFromEpisodeParam(raw: string): number | null {
   return null;
 }
 
-export default async function WatchPage({ searchParams }: { searchParams: { episode?: string; url?: string; post_id?: string; season?: string } }) {
+export default async function WatchPage({ searchParams }: { searchParams: { episode?: string; url?: string; post_id?: string; season?: string; server?: string } }) {
   const episodeParam = searchParams?.episode || "";
   const seriesUrlParam = searchParams?.url || "";
   const postIdParam = Number(searchParams?.post_id || 0);
   const requestedSeason = Number(searchParams?.season || 0);
+  const serverParam = searchParams?.server || "";
   
   if (!episodeParam) {
     return (
@@ -111,6 +113,11 @@ export default async function WatchPage({ searchParams }: { searchParams: { epis
 
   // Check if this is a movie (URL contains /movies/ or the episode parameter is a movie URL)
   if (episodeParam.includes('/movies/') || (seriesUrlParam && seriesUrlParam.startsWith('/movies/'))) {
+    isMovie = true;
+  }
+  
+  // Additional movie detection for any movie-like content
+  if (episodeParam.includes('movie') || episodeParam.includes('film') || episodeParam.includes('ova') || episodeParam.includes('special')) {
     isMovie = true;
   }
 
@@ -425,6 +432,7 @@ export default async function WatchPage({ searchParams }: { searchParams: { epis
       </main>
 
       <NewBottomNav />
+      <DesktopNav />
     </div>
   );
 }

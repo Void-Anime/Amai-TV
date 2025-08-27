@@ -1,6 +1,7 @@
 import { fetchAnimeDetails, fetchAnimeList } from "@/server/scraper";
 import NewNavbar from "@/components/NewNavbar";
 import NewBottomNav from "@/components/NewBottomNav";
+import DesktopNav from "@/components/DesktopNav";
 import Image from "next/image";
 import SeasonSelector from "@/components/SeasonSelector";
 import EpisodeCard from "@/components/EpisodeCard";
@@ -250,6 +251,7 @@ export default async function TitlePage({
       </div>
 
       <NewBottomNav />
+      <DesktopNav />
     </div>
   );
 }

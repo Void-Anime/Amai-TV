@@ -19,12 +19,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <Script 
-          src="//nervousnormgaze.com/ee/fc/64/eefc6462a378d15c01af2930a05e574b.js"
-          strategy="beforeInteractive"
-        />
+        {/* Remove third-party scripts for cleaner UX */}
+        <meta name="theme-color" content="#000000" />
+        <link rel="icon" href="data:," />
       </head>
-      <body className={inter.className}>
+      <body className={`${inter.className} bg-[var(--bg)] text-[var(--text)]`}>
         {children}
         <Analytics />
       </body>

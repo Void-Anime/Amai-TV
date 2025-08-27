@@ -45,7 +45,7 @@ export default function NewAnimeCard({
         className="block"
       >
         {/* Card Container */}
-        <div className="relative overflow-hidden rounded-xl bg-gray-900 border border-gray-800 transition-all duration-300 group-hover:border-purple-500/50 group-hover:shadow-[0_0_20px_rgba(147,51,234,0.3)]">
+        <div className="relative overflow-hidden rounded-xl bg-black border border-white/10 transition-all duration-300 group-hover:border-white/25">
           {/* Image */}
           <div className="relative aspect-[2/3] overflow-hidden">
             {image ? (
@@ -104,7 +104,7 @@ export default function NewAnimeCard({
           {/* Content */}
           <div className="p-3">
             {/* Title */}
-            <h3 className="font-semibold text-white text-sm leading-tight line-clamp-2 mb-2 group-hover:text-purple-300 transition-colors">
+            <h3 className="font-semibold text-white text-sm leading-tight line-clamp-2 mb-2">
               {title || "Untitled"}
             </h3>
 
@@ -120,7 +120,7 @@ export default function NewAnimeCard({
                 {genres.slice(0, 2).map((genre) => (
                   <span
                     key={genre}
-                    className="px-2 py-1 bg-gray-800 text-gray-300 text-xs rounded-full border border-gray-700"
+                    className="px-2 py-1 bg-black text-gray-200 text-xs rounded-full border border-white/15"
                   >
                     {genre}
                   </span>

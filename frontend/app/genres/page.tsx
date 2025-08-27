@@ -1,5 +1,6 @@
 import NewNavbar from "@/components/NewNavbar";
 import NewBottomNav from "@/components/NewBottomNav";
+import DesktopNav from "@/components/DesktopNav";
 
 export default function GenresPage() {
   const genres = [
@@ -61,6 +62,7 @@ export default function GenresPage() {
       </main>
 
       <NewBottomNav />
+      <DesktopNav />
     </div>
   );
 }

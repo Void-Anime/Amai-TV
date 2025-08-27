@@ -1,6 +1,7 @@
 import { fetchAnimeList } from "@/server/scraper";
 import NewNavbar from "@/components/NewNavbar";
 import NewBottomNav from "@/components/NewBottomNav";
+import DesktopNav from "@/components/DesktopNav";
 import AnimeGridCard from "@/components/AnimeGridCard";
 
 export default async function AnimePage({ searchParams }: { searchParams: { page?: string } }) {
@@ -51,6 +52,7 @@ export default async function AnimePage({ searchParams }: { searchParams: { page
       </main>
 
       <NewBottomNav />
+      <DesktopNav />
     </div>
   );
 }

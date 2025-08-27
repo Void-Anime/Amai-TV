@@ -1,10 +1,10 @@
-import { fetchMoviesList } from "@/server/scraper";
+import { fetchAnimeList } from "@/server/scraper";
 import NewNavbar from "@/components/NewNavbar";
 import NewBottomNav from "@/components/NewBottomNav";
 import DesktopNav from "@/components/DesktopNav";
 import AnimeGridCard from "@/components/AnimeGridCard";
 
-export default async function MoviesPage({ searchParams }: { searchParams: { page?: string; q?: string } }) {
+export default async function SeriesPage({ searchParams }: { searchParams: { page?: string; q?: string } }) {
   const page = Number(searchParams?.page || 1);
   const query = searchParams?.q || "";
   
@@ -12,10 +12,10 @@ export default async function MoviesPage({ searchParams }: { searchParams: { pag
   let error = null;
   
   try {
-    data = await fetchMoviesList(page, query);
-    console.log('Movies data:', data); // Debug log
+    data = await fetchAnimeList(page);
+    console.log('Series data:', data); // Debug log
   } catch (err) {
-    console.error('Error fetching movies:', err);
+    console.error('Error fetching series:', err);
     error = err instanceof Error ? err.message : 'Unknown error occurred';
   }
   
@@ -28,12 +28,12 @@ export default async function MoviesPage({ searchParams }: { searchParams: { pag
         <NewNavbar />
         <main className="mx-auto max-w-7xl px-4 md:px-6 py-6 space-y-6 pb-24">
           <div className="text-center space-y-2">
-            <h1 className="text-4xl font-bold text-white">Movies</h1>
-            <p className="text-lg text-gray-300">Watch anime movies and specials</p>
+            <h1 className="text-4xl font-bold text-white">Series</h1>
+            <p className="text-lg text-gray-300">Discover and watch your favorite anime series</p>
           </div>
           
           <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-6 text-center">
-            <h3 className="text-xl font-bold text-red-400 mb-2">Error Loading Movies</h3>
+            <h3 className="text-xl font-bold text-red-400 mb-2">Error Loading Series</h3>
             <p className="text-red-300 mb-4">{error}</p>
             <p className="text-sm text-gray-400">Please try refreshing the page or check back later.</p>
           </div>
@@ -50,8 +50,8 @@ export default async function MoviesPage({ searchParams }: { searchParams: { pag
       
       <main className="mx-auto max-w-7xl px-4 md:px-6 py-6 space-y-6 pb-24">
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold text-white">Movies</h1>
-          <p className="text-lg text-gray-300">Watch anime movies and specials</p>
+          <h1 className="text-4xl font-bold text-white">Series</h1>
+          <p className="text-lg text-gray-300">Discover and watch your favorite anime series</p>
         </div>
 
         {/* Search Bar */}
@@ -60,7 +60,7 @@ export default async function MoviesPage({ searchParams }: { searchParams: { pag
             <input
               type="text"
               name="q"
-              placeholder="Search movies..."
+              placeholder="Search series..."
               defaultValue={query}
               className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             />
@@ -108,7 +108,7 @@ export default async function MoviesPage({ searchParams }: { searchParams: { pag
               </svg>
             </div>
             <p className="text-gray-400">
-              {query ? "No movies found for your search." : "No movies available at the moment."}
+              {query ? "No series found for your search." : "No series available at the moment."}
             </p>
             <p className="text-sm text-gray-500 mt-2">
               This might be due to a temporary issue. Please try again later.
@@ -121,7 +121,7 @@ export default async function MoviesPage({ searchParams }: { searchParams: { pag
           <div className="flex justify-center items-center space-x-2">
             {page > 1 && (
               <a
-                href={`/movies?page=${page - 1}${query ? `&q=${encodeURIComponent(query)}` : ''}`}
+                href={`/series?page=${page - 1}${query ? `&q=${encodeURIComponent(query)}` : ''}`}
                 className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors"
               >
                 Previous
@@ -129,7 +129,7 @@ export default async function MoviesPage({ searchParams }: { searchParams: { pag
             )}
             <span className="px-4 py-2 text-gray-300">Page {page}</span>
             <a
-              href={`/movies?page=${page + 1}${query ? `&q=${encodeURIComponent(query)}` : ''}`}
+              href={`/series?page=${page + 1}${query ? `&q=${encodeURIComponent(query)}` : ''}`}
               className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
             >
               Next
@@ -143,5 +143,3 @@ export default async function MoviesPage({ searchParams }: { searchParams: { pag
     </div>
   );
 }
-
-

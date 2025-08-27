@@ -1,23 +1,24 @@
-import { fetchAnimeList } from "@/server/scraper";
 import NewNavbar from "@/components/NewNavbar";
 import NewBottomNav from "@/components/NewBottomNav";
+import DesktopNav from "@/components/DesktopNav";
 import NewAnimeCard from "@/components/NewAnimeCard";
+import { headers } from "next/headers";
 
 export default async function SearchPage({ searchParams }: { searchParams: { q?: string } }) {
-  const query = searchParams?.q || "";
+  const query = (searchParams?.q || "").trim();
   let results: any[] = [];
 
   if (query) {
     try {
-      // For now, we'll search through the first few pages
-      const promises = [1, 2, 3].map(page => fetchAnimeList(page));
-      const pages = await Promise.all(promises);
-      const allItems = pages.flatMap(page => page.items || []);
-      
-      // Simple search through titles
-      results = allItems.filter(item => 
-        item.title?.toLowerCase().includes(query.toLowerCase())
-      );
+      const hdrs = headers();
+      const host = hdrs.get('host');
+      const proto = hdrs.get('x-forwarded-proto') || 'http';
+      const base = host ? `${proto}://${host}` : '';
+      const res = await fetch(`${base}/api/search?q=${encodeURIComponent(query)}`, { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        results = Array.isArray(data.items) ? data.items : [];
+      }
     } catch (error) {
       console.error('Search error:', error);
     }
@@ -110,6 +111,7 @@ export default async function SearchPage({ searchParams }: { searchParams: { q?:
       </main>
 
       <NewBottomNav />
+      <DesktopNav />
     </div>
   );
 }

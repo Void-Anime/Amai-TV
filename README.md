@@ -1,6 +1,6 @@
-## Anime Streaming App (Next.js 14 + TypeScript)
+## AMAI TV – Anime Streaming App (Next.js 14 + TypeScript)
 
-Full-stack app using Next.js App Router. Scraping is implemented in server-side routes with Axios + Cheerio (ported and expanded from `live_scraper.py`).
+Full-stack app using Next.js App Router. Scraping is implemented in server-side API routes with Axios + Cheerio (ported and expanded from `live_scraper.py`). UI is fully black-themed with desktop bottom navigation.
 
 ### Prerequisites
 - Node.js 18+
@@ -21,18 +21,29 @@ npm run dev
 - `GET /api/anime_list?page=1` — paginated list
 - `GET /api/anime_details?url=<series_url>[&post_id=<id>][&season=<n>]` — details + seasons + episodes
 - `GET /api/episode_players?url=<episode_url>` — video sources (HLS/iframe)
-- `GET /api/search?q=<query>` — search
+- `GET /api/search?q=<query>` — search (mirrors `animesalt` "?s=")
 - `GET /api/image?src=<image_url>` — image proxy
+- `GET /api/ongoing?page=<n>&q=<query>` — ongoing series (status: ongoing)
+- `GET /api/upcoming` — upcoming episode tiles (with countdowns)
 
 Notes:
 - `post_id` improves season switching when provided; direct scraping works without it for default season.
 - Selectors depend on `animesalt.cc` markup; adjust in `frontend/server/scraper.ts` if the site changes.
 
 ### Frontend Pages
-- `/` Trending, Latest, Popular grids (responsive, SSR)
-- `/search?q=...` Search results
-- `/title/<slug>` or `/anime/...` Details with seasons and episodes
-- `/watch?src=...` HLS-capable player with subtitles support
+- `/`
+  - Franchises carousel (Iron Man, Naruto, Dragon Ball, etc.) – large logos, auto-sliding loop
+  - Networks grid (Crunchyroll, Netflix, Prime Video, etc.) – internal links only
+  - Ongoing Series section (scraped, paginated)
+  - Upcoming Episodes section (live countdowns via scraper)
+  - Trending, Latest, Popular carousels
+- `/search?q=...` Search results (server-scraped via `/api/search`)
+- `/title/<slug>` Details with seasons and episodes (black theme)
+- `/watch?...` HLS/iframe player with seasons/episodes (black theme)
+- `/cartoon` Cartoon listing (category scraper)
+- `/series` Series listing (same structure as anime list)
+- `/networks` and `/networks/[slug]` Network hubs and dynamic pages (internal content)
+- `/ongoing` Full ongoing list (search + pagination)
 
 ### Code Layout
 ```
@@ -49,6 +60,12 @@ Key files:
 - `frontend/app/api/*` — API endpoints using scraper
 - `frontend/components/*` — UI building blocks
 
+Notable Components:
+- `DesktopNav.tsx` – desktop bottom navigation (visible on PC across pages)
+- `NewCarousel.tsx` – smooth auto-sliding carousel with loop and 1-by-1 snap
+- `NewAnimeCard.tsx` – black-themed, hover-zoom cards with internal routing
+- `DetailsHeader.tsx` – black-themed details header with badges/chips
+
 ### Deployment (Vercel)
 1. Set project root to `frontend`
 2. Build Command: `npm run build`
@@ -56,7 +73,23 @@ Key files:
 4. Env (optional): `NEXT_PUBLIC_SITE_BASE`
 
 ### Troubleshooting
-- Empty lists/details: check Network tab for API responses; site markup may have changed → update selectors in `scraper.ts`.
-- 500 errors from API routes: run `npm run dev` inside `frontend` and check server logs.
-- HLS not playing: ensure the `watch` page loads `hls.js` and the source URL ends with `.m3u8`.
+- Search URL error (ERR_INVALID_URL): we build absolute API URLs using request headers; ensure you access via `http://localhost:3000`.
+- CORS on scraper: all scraping is server-side via API routes; never call scraper from the client.
+- Empty lists/details: check API responses; if animesalt markup changes, update parsers in `scraper.ts` (e.g., selectors, filters).
+- HLS not playing: the default `<video>` plays HLS only with browser support; if needed, integrate `hls.js` for MSE playback.
+
+### Theming
+- Global black theme via CSS variables in `app/globals.css` (no purple accents)
+- Cards, details, chips, and buttons use black backgrounds and subtle white borders.
+
+---
+
+Made by Void Anime
+
+### UI Comparison (Before vs After)
+
+| Old | New |
+| --- | --- |
+| ![Old UI](https://github.com/Void-Anime/Amai-TV/blob/main/Old.png) | ![New UI](https://github.com/Void-Anime/Amai-TV/blob/main/new.png) |
+
 

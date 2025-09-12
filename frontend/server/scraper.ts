@@ -458,6 +458,7 @@ function extractPlayersFromHtml(html: string, baseUrl: string): PlayerSourceItem
     if (!src) return;
     try { 
       const fullUrl = new URL(src, baseUrl).toString();
+      // Default label for generic iframes
       sources.push({ src: fullUrl, kind: 'iframe', label: 'Server 1' }); 
     } catch {}
   });
@@ -485,6 +486,25 @@ function extractPlayersFromHtml(html: string, baseUrl: string): PlayerSourceItem
       sources.push({ src: fullUrl, kind: 'video', label: 'HLS Stream' }); 
     } catch {} 
   }
+
+  // Extract alternative "Server 2" container (custom markup)
+  try {
+    const server2 = $('.video-container iframe#videoFrame').first();
+    if (server2 && server2.length) {
+      const s2src = server2.attr('data-src') || server2.attr('src');
+      if (s2src) {
+        const fullUrl = new URL(s2src, baseUrl).toString();
+        // Try to detect language text if available in nearby nodes
+        let lang: string | null = null;
+        const langSpan = server2.parent().find('#switchingLanguage').first();
+        if (langSpan && langSpan.length) {
+          const t = (langSpan.text() || '').trim();
+          if (t) lang = t;
+        }
+        sources.push({ src: fullUrl, kind: 'iframe', label: lang ? `Server 2 (${lang})` : 'Server 2' });
+      }
+    }
+  } catch {}
   
   // Extract server options (common in movie pages)
   $('a[href*="play"], a[href*="watch"], a[href*="stream"]').each((_, el) => {

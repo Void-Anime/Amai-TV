@@ -3,6 +3,7 @@ import NewNavbar from "@/components/NewNavbar";
 import NewBottomNav from "@/components/NewBottomNav";
 import DesktopNav from "@/components/DesktopNav";
 import Image from "next/image";
+import Player from "@/components/Player";
 import Link from "next/link";
 import SeasonSelector from "@/components/SeasonSelector";
 import EpisodeCard from "@/components/EpisodeCard";
@@ -217,71 +218,10 @@ export default async function WatchPage({ searchParams }: { searchParams: { epis
           </p>
         </div>
 
-        {/* Video Player */}
-        <div className="bg-gray-900 rounded-xl overflow-hidden border border-gray-800 shadow-lg">
-          {sources.length > 0 ? (
-            <div className="aspect-video w-full">
-              {sources[0].kind === 'iframe' ? (
-                <iframe
-                  src={sources[0].src}
-                  className="w-full h-full"
-                  frameBorder="0"
-                  allowFullScreen
-                  allow="autoplay; encrypted-media"
-                />
-              ) : (
-                <video
-                  controls
-                  className="w-full h-full"
-                  autoPlay
-                  muted
-                >
-                  <source src={sources[0].src} type="application/x-mpegURL" />
-                  Your browser does not support the video tag.
-                </video>
-              )}
-            </div>
-          ) : (
-            <div className="aspect-video w-full flex items-center justify-center text-gray-400 bg-gray-800">
-              <div className="text-center">
-                <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p className="text-white">No video sources available</p>
-                <p className="text-sm text-gray-400 mt-1">Please try again later</p>
-              </div>
-            </div>
-          )}
-        </div>
+        {/* Video Player with server selection */}
+        <Player sources={sources as any} />
 
-        {/* Video Controls */}
-        <div className="flex items-center justify-between bg-gray-900 rounded-xl p-4 border border-gray-800 shadow-lg">
-          <div className="flex items-center space-x-4">
-            <button className="px-4 py-2 bg-purple-600 text.white rounded-lg hover:bg-purple-700 transition-all duration-200 transform hover:scale-105">
-              <svg className="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Play
-            </button>
-            <button className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-all duration-200">
-              <svg className="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-              </svg>
-              Volume
-            </button>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-300">Quality:</span>
-            <select className="bg-gray-800 text-white px-3 py-1 rounded border border-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-              {sources.map((source, index) => (
-                <option key={index} value={source.src}>
-                  {source.label || source.quality || `Source ${index + 1}`}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+        {/* Extra controls (optional) removed; server selection now inside Player */}
 
         {/* Next Episode Card - Only show for anime series */}
         {!isMovie && nextEpisode && (

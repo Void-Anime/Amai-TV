@@ -47,6 +47,11 @@ export function extractPostIdFromHtml(html: string): number | null {
 export function parseEpisodesFromHtml(html: string): EpisodeItem[] {
   const $ = cheerio.load(html);
   const episodes: EpisodeItem[] = [];
+  
+  console.log(`parseEpisodesFromHtml: HTML length: ${html.length}`);
+  console.log(`parseEpisodesFromHtml: Found ${$('article.post.episodes').length} article.post.episodes elements`);
+  console.log(`parseEpisodesFromHtml: Found ${$('a[href*="/episode"]').length} episode links`);
+  
   $('article.post.episodes').each((_, el) => {
     const link = $(el).find('a[href*="/episode"]').first();
     const href = link.attr('href');
@@ -63,28 +68,83 @@ export function parseEpisodesFromHtml(html: string): EpisodeItem[] {
     if (href) episodes.push({ number: numberText, title: titleText || null, url: new URL(href, BASE).toString(), poster: epPoster });
   });
   if (episodes.length === 0) {
-    $('a[href*="/episode"]').each((_, a) => {
-      const href = $(a).attr('href');
-      if (!href) return;
-      episodes.push({ title: $(a).text().trim() || null, url: new URL(href, BASE).toString(), poster: null });
-    });
+    console.log(`parseEpisodesFromHtml: No episodes found in article.post.episodes, trying fallback selectors`);
+    
+    // Try multiple fallback selectors
+    const fallbackSelectors = [
+      'a[href*="/episode"]',
+      '.episode-item a',
+      '.episode-list a',
+      'article a[href*="/episode"]',
+      '.episodes a[href*="/episode"]'
+    ];
+    
+    for (const selector of fallbackSelectors) {
+      $(selector).each((_, a) => {
+        const href = $(a).attr('href');
+        if (!href) return;
+        episodes.push({ title: $(a).text().trim() || null, url: new URL(href, BASE).toString(), poster: null });
+      });
+      if (episodes.length > 0) {
+        console.log(`parseEpisodesFromHtml: Found ${episodes.length} episodes using fallback selector: ${selector}`);
+        break;
+      }
+    }
   }
+  
+  console.log(`parseEpisodesFromHtml: Final episodes count: ${episodes.length}`);
   return episodes;
 }
 
 export function parseSeasonsFromHtml(html: string): SeasonItem[] {
   const $ = cheerio.load(html);
   const seasons: SeasonItem[] = [];
+  
+  console.log(`parseSeasonsFromHtml: Found ${$('a.season-btn').length} season buttons`);
+  
   $('a.season-btn').each((_, a) => {
     const seasonRaw = $(a).attr('data-season');
     const label = $(a).text().trim();
     const classes = ($(a).attr('class') || '').split(/\s+/);
     const isNonRegional = classes.includes('non-regional');
+    
+    // Enhanced regional language detection
+    let regionalLanguageInfo = {
+      isNonRegional: isNonRegional,
+      isSubbed: false,
+      isDubbed: false,
+      languageType: 'unknown' as 'dubbed' | 'subbed' | 'unknown'
+    };
+    
+    // Check for [Sub] or [Dub] indicators in the label
+    if (label.includes('[Sub]')) {
+      regionalLanguageInfo.isSubbed = true;
+      regionalLanguageInfo.languageType = 'subbed';
+    } else if (label.includes('[Dub]')) {
+      regionalLanguageInfo.isDubbed = true;
+      regionalLanguageInfo.languageType = 'dubbed';
+    }
+    
+    // If it has non-regional class, it's likely subbed
+    if (isNonRegional && !regionalLanguageInfo.isSubbed && !regionalLanguageInfo.isDubbed) {
+      regionalLanguageInfo.isSubbed = true;
+      regionalLanguageInfo.languageType = 'subbed';
+    }
+    
+    console.log(`parseSeasonsFromHtml: Season button - data-season: ${seasonRaw}, label: ${label}, classes: ${classes.join(', ')}, regional: ${JSON.stringify(regionalLanguageInfo)}`);
+    
     if (seasonRaw) {
       const maybeNum = Number(seasonRaw);
-      seasons.push({ season: Number.isFinite(maybeNum) ? maybeNum : seasonRaw, label, nonRegional: isNonRegional });
+      seasons.push({ 
+        season: Number.isFinite(maybeNum) ? maybeNum : seasonRaw, 
+        label, 
+        nonRegional: isNonRegional,
+        regionalLanguageInfo
+      });
     }
   });
+  
+  console.log(`parseSeasonsFromHtml: Final seasons count: ${seasons.length}`);
   return seasons;
 }
 
@@ -297,10 +357,19 @@ export async function fetchAnimeDetails(params: { url: string; postId: number; s
   const resolvedPostId = Number.isFinite(postId) && postId > 0 ? postId : (extractPostIdFromHtml(html) ?? 0);
   let episodes: EpisodeItem[] = [];
   if (typeof season === 'number' && Number.isFinite(season)) {
-    const payload = new URLSearchParams({ action: 'action_select_season', season: String(season), post: String(resolvedPostId) });
-    const resp = await http.post(AJAX, payload, { headers: { Referer: url } });
-    const text = typeof resp.data === 'string' ? resp.data : JSON.stringify(resp.data);
-    episodes = parseEpisodesFromHtml(text);
+    console.log(`fetchAnimeDetails: Fetching episodes for season ${season}, postId: ${resolvedPostId}`);
+    try {
+      const payload = new URLSearchParams({ action: 'action_select_season', season: String(season), post: String(resolvedPostId) });
+      const resp = await http.post(AJAX, payload, { headers: { Referer: url } });
+      const text = typeof resp.data === 'string' ? resp.data : JSON.stringify(resp.data);
+      console.log(`fetchAnimeDetails: Season ${season} response length: ${text.length}`);
+      episodes = parseEpisodesFromHtml(text);
+      console.log(`fetchAnimeDetails: Parsed ${episodes.length} episodes for season ${season}`);
+    } catch (error) {
+      console.error(`fetchAnimeDetails: Error fetching season ${season}:`, error);
+      // Fall back to parsing from main HTML
+      episodes = parseEpisodesFromHtml(html);
+    }
   } else {
     if (Number.isFinite(resolvedPostId) && resolvedPostId > 0) {
       try {
@@ -322,17 +391,112 @@ export async function fetchAnimeDetails(params: { url: string; postId: number; s
     }
   }
   if (episodes.length === 0) episodes = parseEpisodesFromHtml(html);
-  return { url, postId: resolvedPostId, season: season ?? null, seasons, episodes, poster, ...meta };
+
+  // Parse related/recommended series
+  const $ = cheerio.load(html);
+  const related: { url: string; title?: string | null; poster?: string | null; genres?: string[]; postId?: number }[] = [];
+  const seenRelated = new Set<string>();
+
+  const normalizeSrc = (src?: string | null): string | null => {
+    if (!src) return null;
+    let out = src.trim();
+    if (out.startsWith('//')) return `https:${out}`;
+    if (out.startsWith('/')) return new URL(out, url).toString();
+    return out;
+  };
+
+  // Try multiple selectors to find recommended series
+  const selectors = [
+    'section.section.episodes .owl-item article.post',
+    'section.section.episodes article.post', 
+    '.section.episodes .owl-carousel .owl-item article.post',
+    '.owl-carousel .owl-item article.post',
+    '.recommended .post',
+    '.related .post',
+    'article.post'
+  ];
+
+  for (const selector of selectors) {
+    const candidates = $(selector);
+    if (candidates.length === 0) continue;
+
+    candidates.each((_, el) => {
+      try {
+        const art = $(el);
+        const a = art.find('a[href*="/series/"], a[href*="/movies/"]').first();
+        const href = a.attr('href');
+        if (!href) return;
+        const abs = new URL(href, url).toString();
+        if (seenRelated.has(abs)) return;
+
+        const imgEl = art.find('img').first();
+        let img = normalizeSrc(imgEl.attr('src') || imgEl.attr('data-src') || imgEl.attr('data-lazy'));
+        const titleRaw = imgEl.attr('alt') || art.find('h3,h2,.entry-title').first().text() || null;
+        const title = titleRaw ? titleRaw.replace(/^Image\s+/i, '').trim() : null;
+
+        related.push({ url: abs, title, poster: img });
+        seenRelated.add(abs);
+      } catch {}
+    });
+
+    // If we found items with this selector, break
+    if (related.length > 0) break;
+  }
+
+  // Cap to a reasonable number to avoid overloading UI
+  if (related.length > 20) related.length = 20;
+
+  // Extract smart buttons
+  const smartButtons: { url: string; actionText: string; episodeText: string; buttonClass: string }[] = [];
+  $('.smart-buttons-container .smart-play-btn').each((_, el) => {
+    const $btn = $(el);
+    const href = $btn.attr('href');
+    const actionText = $btn.find('.action-text').text().trim();
+    const episodeText = $btn.find('.episode-text').text().trim();
+    const btnClass = $btn.attr('class') || '';
+    
+    if (href && actionText) {
+      smartButtons.push({
+        url: href,
+        actionText: actionText,
+        episodeText: episodeText,
+        buttonClass: btnClass
+      });
+    }
+  });
+
+  return { url, postId: resolvedPostId, season: season ?? null, seasons, episodes, poster, related, smartButtons, ...meta };
 }
 
 export async function fetchEpisodePlayers(episodeUrl: string) {
-  const resp = await http.get(episodeUrl, { responseType: 'text' });
+  console.log(`fetchEpisodePlayers: Processing URL: ${episodeUrl}`);
+  
+  // Normalize and validate the URL
+  let normalizedUrl: string;
+  try {
+    // If it's already a full URL, use it as is
+    if (episodeUrl.startsWith('http://') || episodeUrl.startsWith('https://')) {
+      normalizedUrl = episodeUrl;
+    } else {
+      // If it's a relative URL, make it absolute
+      normalizedUrl = new URL(episodeUrl, BASE).toString();
+    }
+    
+    // Validate the URL
+    new URL(normalizedUrl);
+    console.log(`fetchEpisodePlayers: Normalized URL: ${normalizedUrl}`);
+  } catch (error) {
+    console.error(`fetchEpisodePlayers: Invalid URL - ${episodeUrl}:`, error);
+    throw new Error(`Invalid episode URL: ${episodeUrl}`);
+  }
+  
+  const resp = await http.get(normalizedUrl, { responseType: 'text' });
   const html = String(resp.data || '');
   const $ = cheerio.load(html);
   const sources: { src: string; label?: string | null; quality?: string | null; kind: 'iframe' | 'video' }[] = [];
-  $('iframe').each((_, el) => { const src = $(el).attr('data-src') || $(el).attr('src'); if (!src) return; sources.push({ src: new URL(src, episodeUrl).toString(), kind: 'iframe' }); });
-  $('video source').each((_, el) => { const src = $(el).attr('src'); if (!src) return; sources.push({ src: new URL(src, episodeUrl).toString(), label: $(el).attr('label') || $(el).attr('data-label') || null, quality: $(el).attr('res') || $(el).attr('data-res') || null, kind: 'video' }); });
-  const m3u8Match = html.match(/https?:[^"'\s]+\.m3u8/); if (m3u8Match) { try { sources.push({ src: new URL(m3u8Match[0], episodeUrl).toString(), kind: 'video', label: 'HLS' }); } catch {} }
+  $('iframe').each((_, el) => { const src = $(el).attr('data-src') || $(el).attr('src'); if (!src) return; sources.push({ src: new URL(src, normalizedUrl).toString(), kind: 'iframe' }); });
+  $('video source').each((_, el) => { const src = $(el).attr('src'); if (!src) return; sources.push({ src: new URL(src, normalizedUrl).toString(), label: $(el).attr('label') || $(el).attr('data-label') || null, quality: $(el).attr('res') || $(el).attr('data-res') || null, kind: 'video' }); });
+  const m3u8Match = html.match(/https?:[^"'\s]+\.m3u8/); if (m3u8Match) { try { sources.push({ src: new URL(m3u8Match[0], normalizedUrl).toString(), kind: 'video', label: 'HLS' }); } catch {} }
   const seen = new Set<string>();
   return sources.filter(s => (seen.has(s.src) ? false : (seen.add(s.src), true)));
 }

@@ -1,5 +1,6 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useProgress } from "@/components/useProgress";
 
 type PlayerSourceItem = { src: string; kind: "iframe" | "video"; label?: string | null; quality?: string | null };
 
@@ -11,6 +12,34 @@ export default function Player({ sources }: { sources: PlayerSourceItem[] }) {
 
   const [idx, setIdx] = useState(0);
   const current = safeSources[idx] || null;
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const { set: setProgress, get: getProgress } = useProgress();
+
+  // Resume time for HTML5 video
+  useEffect(() => {
+    if (!current || current.kind !== "video") return;
+    const v = videoRef.current;
+    if (!v) return;
+    try {
+      const p = getProgress(current.src);
+      if (p && p.position > 0 && p.duration > 0 && p.position < p.duration - 2) {
+        v.currentTime = p.position;
+      }
+    } catch {}
+
+    const onTime = () => {
+      try {
+        if (!v.duration || isNaN(v.duration)) return;
+        setProgress(current.src, v.currentTime || 0, v.duration || 0);
+      } catch {}
+    };
+    v.addEventListener("timeupdate", onTime);
+    v.addEventListener("ended", onTime);
+    return () => {
+      v.removeEventListener("timeupdate", onTime);
+      v.removeEventListener("ended", onTime);
+    };
+  }, [current?.src, current?.kind]);
 
   return (
     <div className="space-y-4">
@@ -29,7 +58,13 @@ export default function Player({ sources }: { sources: PlayerSourceItem[] }) {
                 sandbox="allow-scripts allow-same-origin allow-forms"
               />
             ) : (
-              <video key={current.src} controls className="w-full h-full" autoPlay>
+              <video
+                key={current.src}
+                ref={videoRef as any}
+                controls
+                className="w-full h-full"
+                autoPlay
+              >
                 <source src={current.src} />
                 Your browser does not support the video tag.
               </video>

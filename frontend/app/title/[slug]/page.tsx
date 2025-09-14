@@ -5,9 +5,11 @@ import DesktopNav from "@/components/DesktopNav";
 import Image from "next/image";
 import SeasonSelector from "@/components/SeasonSelector";
 import EpisodeCard from "@/components/EpisodeCard";
+import EpisodesList from "@/components/EpisodesList";
 import DetailsHeader from "@/components/DetailsHeader";
 import ReadMore from "@/components/ReadMore";
 import Tabs, { TabPanel } from "@/components/Tabs";
+import RelatedSeriesCard from "@/components/RelatedSeriesCard";
 import { notFound, redirect } from "next/navigation";
 import { generateSlug } from "@/lib/utils";
 
@@ -28,8 +30,9 @@ type AnimeDetailsResponse = {
   studio?: string | null;
   status?: string | null;
   rating?: number | null;
-  related?: { url: string; title?: string; poster?: string | null; genres?: string[]; postId?: number }[];
+  related?: { url: string; title?: string | null; poster?: string | null; genres?: string[]; postId?: number }[];
   reviews?: { user?: string; stars?: number; comment?: string }[];
+  smartButtons?: { url: string; actionText: string; episodeText: string; buttonClass: string }[];
 };
 
 // Function to find anime by slug
@@ -128,15 +131,17 @@ export default async function TitlePage({
   }
 
   console.log(`TitlePage: Successfully got data for: ${data.url}`);
+  console.log(`TitlePage: Episodes count: ${data.episodes?.length || 0}, Seasons count: ${data.seasons?.length || 0}`);
+  console.log(`TitlePage: Selected season: ${selectedSeason}, Available seasons:`, data.seasons?.map(s => s.season));
 
   const episodes = data?.episodes || [];
   const title = decodeURIComponent(data.url.split('/').filter(Boolean).pop() || slug);
   
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen" style={{ backgroundColor: '#0f0f0f' }}>
       <NewNavbar />
       
-      <div className="mx-auto max-w-6xl px-4 md:px-6 py-6 space-y-6 pb-24">
+      <div className="mx-auto max-w-screen-x1 px-10 md:px-10 py-10 space-y-10 pb-34">
         <DetailsHeader
           poster={data.poster || null}
           title={title}
@@ -148,6 +153,7 @@ export default async function TitlePage({
           studio={data.studio || null}
           status={data.status || null}
           rating={data.rating || null}
+          smartButtons={data.smartButtons}
         />
 
         <ReadMore text={"Enjoy a modern, fast experience with AMAI TV. Episodes update season-wise below. Choose a season and start watching instantly."} />
@@ -163,53 +169,29 @@ export default async function TitlePage({
           <TabPanel id="episodes">
             <div id="episodes" className="space-y-4">
               <SeasonSelector seasons={data.seasons || []} selected={selectedSeason} seriesUrl={data.url} postId={data.postId} />
-              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                {episodes.map((ep, idx) => (
-                  <EpisodeCard 
-                    key={ep.url} 
-                    url={ep.url} 
-                    title={ep.title} 
-                    number={ep.number} 
-                    poster={ep.poster || data.poster} 
-                    seriesUrl={data.url} 
-                    postId={data.postId} 
-                    season={selectedSeason || 1} 
-                    progress={idx % 3 === 0 ? 0.42 : 0} 
-                    completed={idx % 7 === 0} 
-                  />
-                ))}
-              </div>
+              <EpisodesList
+                episodes={episodes as any}
+                seriesUrl={data.url}
+                postId={data.postId}
+                season={selectedSeason || 1}
+                currentEpisodeUrl={null}
+                seasons={data.seasons}
+              />
             </div>
           </TabPanel>
 
           <TabPanel id="related">
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 lg:grid-cols-5">
-              {(data.related || []).map((r: any) => {
-                const relatedSlug = r.title?.toLowerCase()
-                  .replace(/[^a-z0-9\s-]/g, '')
-                  .replace(/\s+/g, '-')
-                  .replace(/-+/g, '-')
-                  .trim() || 'unknown';
-                
-                return (
-                  <a 
-                    key={r.url} 
-                    href={`/title/${relatedSlug}${r.postId ? `?post_id=${r.postId}` : ''}`} 
-                    className="group relative rounded-xl overflow-hidden border border-gray-800 bg-gray-900 hover:shadow-lg hover:shadow-purple-500/20 transition-all duration-300 hover:border-purple-500/50"
-                  >
-                    {r.poster ? (
-                      <Image unoptimized src={r.poster} alt={r.title || 'Related'} width={220} height={330} className="w-full h-auto object-cover" />
-                    ) : (
-                      <div className="aspect-[2/3] w-full grid place-items-center text-xs text-gray-400 bg-gray-800">No Image</div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition" />
-                    <div className="absolute bottom-2 left-2 right-2 opacity-0 group-hover:opacity-100 transition">
-                      <div className="text-sm font-medium line-clamp-2 text-white">{r.title}</div>
-                      <div className="mt-1 text-[11px] text-gray-300 line-clamp-1">{(r.genres || []).join(', ')}</div>
-                    </div>
-                  </a>
-                );
-              })}
+            <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+              {(data.related || []).map((r: any) => (
+                <RelatedSeriesCard
+                  key={r.url}
+                  url={r.url}
+                  title={r.title}
+                  poster={r.poster}
+                  genres={r.genres}
+                  postId={r.postId}
+                />
+              ))}
             </div>
           </TabPanel>
 

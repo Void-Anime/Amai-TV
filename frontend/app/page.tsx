@@ -6,6 +6,7 @@ import NewCarousel from "@/components/NewCarousel";
 import NewAnimeCard from "@/components/NewAnimeCard";
 import OngoingSeriesGrid from "@/components/OngoingSeriesGrid";
 import UpcomingEpisodesGrid from "@/components/UpcomingEpisodesGrid";
+import ContinueWatchingHome from "@/components/ContinueWatchingHome";
 
 export default async function HomePage() {
   // Fetch trending anime
@@ -41,6 +42,9 @@ export default async function HomePage() {
       <NewNavbar />
       
       <main className="space-y-8 pb-24">
+        {/* Continue Watching */}
+        <ContinueWatchingHome />
+
         {/* Franchises (replaces Hero Slider) */}
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
           {/* Franchise Logos Slider (loop feel, larger size, no background) */}

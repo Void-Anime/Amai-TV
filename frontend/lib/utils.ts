@@ -9,7 +9,11 @@ export function generateSlug(title: string): string {
 }
 
 // Utility function to create title URL
-export function createTitleUrl(title: string, postId?: number): string {
+export function createTitleUrl(title: string, postId?: number, season?: number): string {
   const slug = generateSlug(title);
-  return postId ? `/title/${slug}?post_id=${postId}` : `/title/${slug}`;
+  const params = new URLSearchParams();
+  if (postId) params.set('post_id', postId.toString());
+  if (season) params.set('season', season.toString());
+  const queryString = params.toString();
+  return queryString ? `/title/${slug}?${queryString}` : `/title/${slug}`;
 }

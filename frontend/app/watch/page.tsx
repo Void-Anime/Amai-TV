@@ -7,6 +7,7 @@ import Player from "@/components/Player";
 import Link from "next/link";
 import SeasonSelector from "@/components/SeasonSelector";
 import EpisodeCard from "@/components/EpisodeCard";
+import EpisodesList from "@/components/EpisodesList";
 import { generateSlug } from "@/lib/utils";
 
 type PlayerSourceItem = { src: string; kind: 'iframe' | 'video'; label?: string | null; quality?: string | null };
@@ -27,9 +28,14 @@ async function getAnimeDetails(seriesUrl: string, postId: number, season: number
 // Function to find anime by slug and return full URL
 async function findAnimeBySlug(slug: string): Promise<{ url: string; postId?: number } | null> {
   try {
+    console.log(`findAnimeBySlug: Searching for slug: ${slug}`);
+    
     // Search through multiple pages to find the anime
     for (let page = 1; page <= 3; page++) {
+      console.log(`findAnimeBySlug: Searching page ${page}`);
       const response = await fetchAnimeList(page);
+      console.log(`findAnimeBySlug: Found ${response.items.length} items on page ${page}`);
+      
       const anime = response.items.find(item => {
         if (!item.title) return false;
         const itemSlug = item.title.toLowerCase()
@@ -37,15 +43,19 @@ async function findAnimeBySlug(slug: string): Promise<{ url: string; postId?: nu
           .replace(/\s+/g, '-') // Replace spaces with hyphens
           .replace(/-+/g, '-') // Replace multiple hyphens with single
           .trim();
+        
+        console.log(`findAnimeBySlug: Comparing "${itemSlug}" with "${slug.toLowerCase()}"`);
         return itemSlug === slug.toLowerCase();
       });
       
       if (anime) {
+        console.log(`findAnimeBySlug: Found anime: ${anime.title} (${anime.url})`);
         return { url: anime.url, postId: anime.postId };
       }
     }
     
     // If not found in series, try movies
+    console.log(`findAnimeBySlug: Not found in series, trying movies`);
     for (let page = 1; page <= 2; page++) {
       const response = await fetchAnimeList(page);
       const anime = response.items.find(item => {
@@ -59,10 +69,34 @@ async function findAnimeBySlug(slug: string): Promise<{ url: string; postId?: nu
       });
       
       if (anime) {
+        console.log(`findAnimeBySlug: Found in movies: ${anime.title} (${anime.url})`);
         return { url: anime.url, postId: anime.postId };
       }
     }
     
+    // Try partial matching as a fallback
+    console.log(`findAnimeBySlug: Trying partial matching for slug: ${slug}`);
+    for (let page = 1; page <= 2; page++) {
+      const response = await fetchAnimeList(page);
+      const anime = response.items.find(item => {
+        if (!item.title) return false;
+        const itemSlug = item.title.toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-')
+          .trim();
+        
+        // Try partial matching - check if the slug is contained in the item slug or vice versa
+        return itemSlug.includes(slug.toLowerCase()) || slug.toLowerCase().includes(itemSlug);
+      });
+      
+      if (anime) {
+        console.log(`findAnimeBySlug: Found with partial matching: ${anime.title} (${anime.url})`);
+        return { url: anime.url, postId: anime.postId };
+      }
+    }
+    
+    console.log(`findAnimeBySlug: No anime found for slug: ${slug}`);
     return null;
   } catch (error) {
     console.error('Error finding anime by slug:', error);
@@ -128,25 +162,50 @@ export default async function WatchPage({ searchParams }: { searchParams: { epis
 
   try {
     const decoded = decodeURIComponent(episodeParam).trim();
+    console.log(`WatchPage: Decoded episode param: ${decoded}`);
+    
     // If the episode is a bare identifier like yaiba-samurai-legend-11x4, build full URL
     if (!/^https?:\/\//i.test(decoded)) {
       if (isMovie) {
         // For movies, the episode parameter is actually the movie URL
         episodeUrl = decoded;
       } else {
-        episodeUrl = `https://animesalt.cc/episode/${decoded}/`;
-        // If series URL isn't provided, infer series slug from the episode identifier
-        if (!seriesUrl) {
-          const seriesSlug = decoded.replace(/-\d+x\d+$/i, '');
-          const info = await findAnimeBySlug(seriesSlug);
-          if (info) {
-            seriesUrl = info.url;
-            if (!resolvedPostId && info.postId) resolvedPostId = info.postId;
+        // Validate that we have a valid episode identifier
+        if (decoded && decoded.length > 0) {
+          episodeUrl = `https://animesalt.cc/episode/${decoded}/`;
+          console.log(`WatchPage: Built episode URL: ${episodeUrl}`);
+          
+          // If series URL isn't provided, infer series slug from the episode identifier
+          if (!seriesUrl) {
+            const seriesSlug = decoded.replace(/-\d+x\d+$/i, '');
+            console.log(`WatchPage: Inferred series slug: ${seriesSlug}`);
+            const info = await findAnimeBySlug(seriesSlug);
+            console.log(`WatchPage: findAnimeBySlug result:`, info);
+            if (info) {
+              seriesUrl = info.url;
+              if (!resolvedPostId && info.postId) resolvedPostId = info.postId;
+              console.log(`WatchPage: Resolved series URL: ${seriesUrl}, PostId: ${resolvedPostId}`);
+            } else {
+              console.error(`WatchPage: Could not find series for slug: ${seriesSlug}`);
+              // Fallback: try to construct a series URL directly
+              seriesUrl = `https://animesalt.cc/series/${seriesSlug}/`;
+              console.log(`WatchPage: Using fallback series URL: ${seriesUrl}`);
+            }
           }
+        } else {
+          console.error(`WatchPage: Empty or invalid episode parameter: ${episodeParam}`);
+          throw new Error('Invalid episode parameter');
         }
       }
+    } else {
+      // It's already a full URL, use it as is
+      episodeUrl = decoded;
+      console.log(`WatchPage: Using full URL: ${episodeUrl}`);
     }
-  } catch {}
+  } catch (error) {
+    console.error(`WatchPage: Error processing episode parameter:`, error);
+    throw new Error(`Invalid episode URL: ${episodeParam}`);
+  }
 
   // If the URL looks like a slug-based URL (starts with /title/ or /movies/), extract the slug
   if (seriesUrl && (seriesUrl.startsWith('/title/') || seriesUrl.startsWith('/movies/'))) {
@@ -160,7 +219,31 @@ export default async function WatchPage({ searchParams }: { searchParams: { epis
     }
   }
 
-  const sources = await getData(episodeUrl);
+  console.log(`WatchPage: Final episode URL: ${episodeUrl}`);
+  console.log(`WatchPage: Final series URL: ${seriesUrl}`);
+  console.log(`WatchPage: Resolved post ID: ${resolvedPostId}`);
+  
+  let sources: PlayerSourceItem[] = [];
+  try {
+    sources = await getData(episodeUrl);
+    console.log(`WatchPage: Found ${sources.length} player sources`);
+  } catch (error) {
+    console.error(`WatchPage: Error fetching episode players:`, error);
+    // Return error page instead of crashing
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-white text-center">
+          <h1 className="text-2xl font-bold mb-4">Error Loading Episode</h1>
+          <p className="text-gray-400 mb-4">Unable to load the episode. The URL might be invalid or the episode might not be available.</p>
+          <p className="text-sm text-gray-500 mb-4">Episode URL: {episodeUrl}</p>
+          <Link href="/" className="text-purple-400 hover:text-purple-300 transition-colors">
+            Go back home
+          </Link>
+        </div>
+      </div>
+    );
+  }
+  
   const episodeTitle = isMovie ? 'Full Movie' : decodeURIComponent(episodeUrl.split('/').filter(Boolean).pop() || 'Episode');
   const seriesTitle = seriesUrl ? decodeURIComponent(seriesUrl.split('/').filter(Boolean).pop() || 'Series') : 'Unknown Series';
 
@@ -171,9 +254,52 @@ export default async function WatchPage({ searchParams }: { searchParams: { epis
   
   if (!isMovie) {
     // Fetch anime details for episodes and seasons (use effectiveSeason)
-    animeDetails = seriesUrl ? await getAnimeDetails(seriesUrl, resolvedPostId, effectiveSeason) : null;
-    episodes = animeDetails?.episodes || [];
-    seasons = animeDetails?.seasons || [];
+    if (seriesUrl) {
+      console.log(`WatchPage: Fetching anime details for series: ${seriesUrl}, postId: ${resolvedPostId}, season: ${effectiveSeason}`);
+      try {
+        animeDetails = await getAnimeDetails(seriesUrl, resolvedPostId, effectiveSeason);
+        episodes = animeDetails?.episodes || [];
+        seasons = animeDetails?.seasons || [];
+        console.log(`WatchPage: Fetched ${episodes.length} episodes and ${seasons.length} seasons`);
+      } catch (error) {
+        console.error(`WatchPage: Error fetching anime details:`, error);
+        episodes = [];
+        seasons = [];
+      }
+    } else {
+      console.error(`WatchPage: No series URL available for fetching anime details`);
+      
+      // Try to extract series information from the episode URL as a fallback
+      if (episodeUrl.includes('/episode/')) {
+        try {
+          const episodeSlug = episodeUrl.split('/episode/')[1]?.split('/')[0];
+          if (episodeSlug) {
+            const seriesSlug = episodeSlug.replace(/-\d+x\d+$/i, '');
+            const fallbackSeriesUrl = `https://animesalt.cc/series/${seriesSlug}/`;
+            console.log(`WatchPage: Trying fallback series URL: ${fallbackSeriesUrl}`);
+            
+            try {
+              animeDetails = await getAnimeDetails(fallbackSeriesUrl, resolvedPostId, effectiveSeason);
+              episodes = animeDetails?.episodes || [];
+              seasons = animeDetails?.seasons || [];
+              seriesUrl = fallbackSeriesUrl; // Update the series URL
+              console.log(`WatchPage: Fallback successful - fetched ${episodes.length} episodes and ${seasons.length} seasons`);
+            } catch (fallbackError) {
+              console.error(`WatchPage: Fallback also failed:`, fallbackError);
+              episodes = [];
+              seasons = [];
+            }
+          }
+        } catch (extractError) {
+          console.error(`WatchPage: Error extracting series from episode URL:`, extractError);
+          episodes = [];
+          seasons = [];
+        }
+      } else {
+        episodes = [];
+        seasons = [];
+      }
+    }
   }
 
   // Find current episode index and next episode (only for anime series)
@@ -269,51 +395,33 @@ export default async function WatchPage({ searchParams }: { searchParams: { epis
 
         {/* Episodes List - Only show for anime series */}
         {!isMovie && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-white">Episodes</h2>
+          <div className="space-y-3">
+            <div className="flex flex-col gap-3">
+              <h2 className="text-xl font-bold text-white">Episodes</h2>
               {seriesUrl && seasons.length > 0 && (
-                <SeasonSelector 
-                  seasons={seasons} 
-                  selected={effectiveSeason} 
-                  seriesUrl={seriesUrl} 
-                  postId={resolvedPostId} 
-                />
+                <div className="max-w-full overflow-hidden">
+                  <SeasonSelector 
+                    seasons={seasons} 
+                    selected={effectiveSeason} 
+                    seriesUrl={seriesUrl} 
+                    postId={resolvedPostId} 
+                  />
+                </div>
               )}
             </div>
             
-            {episodes.length > 0 ? (
-              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-                {episodes.map((episode, index) => {
-                  const isCurrentEpisode = episode.url === episodeUrl;
-                  return (
-                    <EpisodeCard
-                      key={episode.url}
-                      url={episode.url}
-                      title={episode.title || `Episode ${episode.number || index + 1}`}
-                      number={episode.number || String(index + 1)}
-                      poster={episode.poster || animeDetails?.poster || null}
-                      seriesUrl={seriesUrl}
-                      postId={resolvedPostId}
-                      season={effectiveSeason}
-                      progress={index % 3 === 0 ? 0.42 : 0}
-                      completed={index % 7 === 0}
-                      isCurrentEpisode={isCurrentEpisode}
-                    />
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <div className="text-gray-500 mb-4">
-                  <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                  </svg>
-                </div>
-                <p className="text-gray-400">No episodes available for this season</p>
-                <p className="text-sm text-gray-500 mt-2">Please try a different season</p>
-              </div>
-            )}
+            <EpisodesList
+              episodes={episodes.map((episode, index) => ({
+                url: episode.url,
+                title: episode.title || `Episode ${episode.number || index + 1}`,
+                number: episode.number || String(index + 1),
+                poster: episode.poster || animeDetails?.poster || null
+              }))}
+              seriesUrl={seriesUrl}
+              postId={resolvedPostId}
+              season={effectiveSeason}
+              currentEpisodeUrl={episodeUrl}
+            />
           </div>
         )}
 

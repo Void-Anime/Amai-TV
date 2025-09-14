@@ -345,7 +345,17 @@ export default async function WatchPage({ searchParams }: { searchParams: { epis
         </div>
 
         {/* Video Player with server selection */}
-        <Player sources={sources as any} />
+        <Player 
+          sources={sources as any} 
+          episodeData={currentEpisode ? {
+            id: `${animeDetails?.postId || resolvedPostId}-${currentEpisode.number || '1'}-${effectiveSeason}`,
+            title: currentEpisode.title || `Episode ${currentEpisode.number || '1'}`,
+            episode: currentEpisode.number || '1',
+            season: String(effectiveSeason),
+            poster: currentEpisode.poster || animeDetails?.poster || null,
+            url: episodeUrl
+          } : undefined}
+        />
 
         {/* Extra controls (optional) removed; server selection now inside Player */}
 

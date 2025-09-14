@@ -1,10 +1,23 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useProgress } from "@/components/useProgress";
+import { useWatchHistory } from "@/hooks/useWatchHistory";
 
 type PlayerSourceItem = { src: string; kind: "iframe" | "video"; label?: string | null; quality?: string | null };
 
-export default function Player({ sources }: { sources: PlayerSourceItem[] }) {
+interface PlayerProps {
+  sources: PlayerSourceItem[];
+  episodeData?: {
+    id: string;
+    title: string;
+    episode: string;
+    season?: string;
+    poster?: string;
+    url: string;
+  };
+}
+
+export default function Player({ sources, episodeData }: PlayerProps) {
   const safeSources = useMemo(() => {
     const seen = new Set<string>();
     return (sources || []).filter((s) => (s?.src && !seen.has(s.src) ? (seen.add(s.src), true) : false));
@@ -14,6 +27,41 @@ export default function Player({ sources }: { sources: PlayerSourceItem[] }) {
   const current = safeSources[idx] || null;
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const { set: setProgress, get: getProgress } = useProgress();
+  const { addToWatchHistory } = useWatchHistory();
+  const [hasAddedToHistory, setHasAddedToHistory] = useState(false);
+
+  // Add to watch history when user starts watching
+  useEffect(() => {
+    if (!episodeData || hasAddedToHistory) return;
+    
+    console.log('Player: Adding to watch history:', episodeData);
+    
+    // Add to history after a short delay to ensure the player is loaded
+    const timer = setTimeout(() => {
+      if (episodeData) {
+        console.log('Player: Calling addToWatchHistory with:', {
+          id: episodeData.id,
+          title: episodeData.title,
+          episode: episodeData.episode,
+          season: episodeData.season,
+          poster: episodeData.poster,
+          url: episodeData.url
+        });
+        
+        addToWatchHistory({
+          id: episodeData.id,
+          title: episodeData.title,
+          episode: episodeData.episode,
+          season: episodeData.season,
+          poster: episodeData.poster,
+          url: episodeData.url
+        });
+        setHasAddedToHistory(true);
+      }
+    }, 2000); // 2 second delay
+
+    return () => clearTimeout(timer);
+  }, [episodeData, hasAddedToHistory, addToWatchHistory]);
 
   // Resume time for HTML5 video
   useEffect(() => {

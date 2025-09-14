@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { userDataService, UserProfile as UserProfileType } from '@/lib/userDataService';
 import { AuthModal } from './AuthModal';
+import { getRandomAnimeAvatar } from '@/lib/animeAvatars';
 
 interface UserProfileProps {
   onClose?: () => void;
@@ -89,19 +90,26 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onClose }) => {
         onClick={() => setShowDropdown(!showDropdown)}
         className="flex items-center space-x-2 hover:bg-gray-800 p-2 rounded-md transition-colors duration-200"
       >
-        {user.photoURL ? (
-          <img
-            src={user.photoURL}
-            alt={user.displayName || 'User'}
-            className="w-8 h-8 rounded-full"
-          />
-        ) : (
-          <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
-            <span className="text-white text-sm font-semibold">
-              {(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
-            </span>
-          </div>
-        )}
+        <img
+          src={getRandomAnimeAvatar(user.uid)}
+          alt={user.displayName || 'User'}
+          className="w-8 h-8 rounded-full object-cover border border-gray-600"
+          onError={(e) => {
+            // Fallback to initial if image fails to load
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            const fallback = target.nextElementSibling as HTMLElement;
+            if (fallback) fallback.style.display = 'flex';
+          }}
+        />
+        <div 
+          className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center hidden"
+          style={{ display: 'none' }}
+        >
+          <span className="text-white text-sm font-semibold">
+            {(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
+          </span>
+        </div>
         <span className="text-white text-sm font-medium hidden sm:block">
           {user.displayName || user.email?.split('@')[0] || 'User'}
         </span>
@@ -114,19 +122,26 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onClose }) => {
         <div className="absolute right-0 mt-2 w-64 bg-gray-900 border border-gray-700 rounded-lg shadow-lg z-50">
           <div className="p-4 border-b border-gray-700">
             <div className="flex items-center space-x-3">
-              {user.photoURL ? (
-                <img
-                  src={user.photoURL}
-                  alt={user.displayName || 'User'}
-                  className="w-10 h-10 rounded-full"
-                />
-              ) : (
-                <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
-                  <span className="text-white font-semibold">
-                    {(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
-                  </span>
-                </div>
-              )}
+              <img
+                src={getRandomAnimeAvatar(user.uid)}
+                alt={user.displayName || 'User'}
+                className="w-10 h-10 rounded-full object-cover border border-gray-600"
+                onError={(e) => {
+                  // Fallback to initial if image fails to load
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const fallback = target.nextElementSibling as HTMLElement;
+                  if (fallback) fallback.style.display = 'flex';
+                }}
+              />
+              <div 
+                className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center hidden"
+                style={{ display: 'none' }}
+              >
+                <span className="text-white font-semibold">
+                  {(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
+                </span>
+              </div>
               <div>
                 <p className="text-white font-medium">
                   {user.displayName || 'Anonymous User'}

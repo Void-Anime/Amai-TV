@@ -7,6 +7,7 @@ import NewNavbar from '@/components/NewNavbar';
 import NewBottomNav from '@/components/NewBottomNav';
 import DesktopNav from '@/components/DesktopNav';
 import Link from 'next/link';
+import { getRandomAnimeAvatar } from '@/lib/animeAvatars';
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
@@ -124,19 +125,26 @@ export default function ProfilePage() {
             {/* Profile Header */}
             <div className="bg-gray-900 rounded-lg p-6">
               <div className="flex items-center space-x-4">
-                {user.photoURL ? (
-                  <img
-                    src={user.photoURL}
-                    alt={user.displayName || 'User'}
-                    className="w-20 h-20 rounded-full"
-                  />
-                ) : (
-                  <div className="w-20 h-20 bg-purple-600 rounded-full flex items-center justify-center">
-                    <span className="text-white text-2xl font-bold">
-                      {(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                )}
+                <img
+                  src={getRandomAnimeAvatar(user.uid)}
+                  alt={user.displayName || 'User'}
+                  className="w-20 h-20 rounded-full object-cover border border-gray-600"
+                  onError={(e) => {
+                    // Fallback to initial if image fails to load
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    const fallback = target.nextElementSibling as HTMLElement;
+                    if (fallback) fallback.style.display = 'flex';
+                  }}
+                />
+                <div 
+                  className="w-20 h-20 bg-purple-600 rounded-full flex items-center justify-center hidden"
+                  style={{ display: 'none' }}
+                >
+                  <span className="text-white text-2xl font-bold">
+                    {(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
+                  </span>
+                </div>
                 <div className="flex-1">
                   <h1 className="text-2xl font-bold text-white">
                     {user.displayName || 'Anonymous User'}

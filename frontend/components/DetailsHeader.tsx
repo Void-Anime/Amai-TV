@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import SmartButtons from './SmartButtons'
+import { MyListButton } from './MyListButton'
 
 function getPosterSize(url?: string | null): { w: number; h: number } {
   const fallbackW = 342;
@@ -65,6 +66,14 @@ export default function DetailsHeader({
           {smartButtons && smartButtons.length > 0 && (
             <SmartButtons buttons={smartButtons} />
           )}
+          
+          {/* My List Button */}
+          <MyListButton
+            animeId={title.toLowerCase().replace(/[^a-z0-9]/g, '-')}
+            animeTitle={title}
+            animePoster={poster || undefined}
+            animeUrl={`/title/${title.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
+          />
           
           {/* Genres Section */}
           {genres.length > 0 && (

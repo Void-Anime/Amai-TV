@@ -1,6 +1,7 @@
 "use client";
 import { useState } from 'react';
 import Link from 'next/link';
+import { UserProfile } from './auth/UserProfile';
 
 export default function NewNavbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -90,9 +91,7 @@ export default function NewNavbar() {
 
             {/* User Actions */}
             <div className="hidden sm:flex items-center space-x-3">
-              <button className="px-4 py-2 text-gray-300 hover:text-white transition-colors font-medium">
-                Sign In
-              </button>
+              <UserProfile />
               <button className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-pink-700 transition-all duration-200 transform hover:scale-105 shadow-lg shadow-purple-600/30">
                 Subscribe
               </button>
